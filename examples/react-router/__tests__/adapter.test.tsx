@@ -54,9 +54,13 @@ function TestApp({ initialPath }: { initialPath: string }) {
 describe("React Router adapter", () => {
 	beforeEach(() => {
 		navigateSpy.mockClear();
+		// Reset window.location so getCurrentPath (which reads window.location)
+		// stays in sync with the MemoryRouter's initial path
+		window.history.pushState({}, "", "/");
 	});
 
 	it("navigateWithTrail changes route and records trail", () => {
+		window.history.pushState({}, "", "/products");
 		render(<TestApp initialPath="/products" />);
 
 		expect(screen.getByTestId("path").textContent).toBe("/products");
@@ -71,6 +75,7 @@ describe("React Router adapter", () => {
 	});
 
 	it("goBack navigates to previous route", () => {
+		window.history.pushState({}, "", "/products");
 		render(<TestApp initialPath="/products" />);
 
 		act(() => {
@@ -89,6 +94,7 @@ describe("React Router adapter", () => {
 	});
 
 	it("goBack uses fallback when trail is empty", () => {
+		window.history.pushState({}, "", "/products/42");
 		render(<TestApp initialPath="/products/42" />);
 
 		expect(baqkRef.hasTrail).toBe(false);

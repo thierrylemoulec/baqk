@@ -1,22 +1,18 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import {
 	type BaqkAdapterProps,
 	createBaqkAdapter,
 } from "../context/create-adapter.js";
 import type { RouterAdapter } from "../core/types.js";
+import { useCurrentPath, useHistoryState } from "../utils/browser.js";
 
 function useNextRouterAdapter(): RouterAdapter {
 	const router = useRouter();
-	const pathname = usePathname();
-	const searchParams = useSearchParams();
-
-	const getCurrentPath = useCallback(() => {
-		const search = searchParams.toString();
-		return search ? `${pathname}?${search}` : pathname;
-	}, [pathname, searchParams]);
+	const getCurrentPath = useCurrentPath();
+	const { getHistoryState, replaceHistoryState } = useHistoryState();
 
 	const nav = useCallback(
 		(path: string, options?: { replace?: boolean }) => {
@@ -28,14 +24,6 @@ function useNextRouterAdapter(): RouterAdapter {
 		},
 		[router],
 	);
-
-	const getHistoryState = useCallback((): Record<string, unknown> | null => {
-		return (window.history.state as Record<string, unknown>) ?? null;
-	}, []);
-
-	const replaceHistoryState = useCallback((patch: Record<string, unknown>) => {
-		window.history.replaceState({ ...window.history.state, ...patch }, "");
-	}, []);
 
 	return useMemo(
 		() => ({

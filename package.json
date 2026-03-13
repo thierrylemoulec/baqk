@@ -1,6 +1,6 @@
 {
   "name": "@thrylm/baqk",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Smart back navigation with state preservation for React apps",
   "type": "module",
   "main": "./dist/index.js",
@@ -78,6 +78,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/thierrylemoulec/baqk"
+    "url": "git+https://github.com/thierrylemoulec/baqk.git"
   }
 }

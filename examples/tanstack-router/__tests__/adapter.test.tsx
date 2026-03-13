@@ -73,6 +73,9 @@ describe("TanStack Router adapter", () => {
 	beforeEach(() => {
 		sessionStorage.clear();
 		navigateSpy.mockClear();
+		// Sync window.location with memory router's initial path since
+		// getCurrentPath now reads window.location directly
+		window.history.pushState({}, "", "/products");
 	});
 
 	it("mounts and provides baqk context", async () => {

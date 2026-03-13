@@ -44,13 +44,17 @@ export function useBaqk<
 		restoredState: T | null;
 	} | null>(null);
 	if (initRef.current === null) {
-		const navId = ensureNavId(router);
-		const restoredState = restoreStateFromStorage<T>(
-			storage,
-			sessionKey,
-			navId,
-		);
-		initRef.current = { navId, restoredState };
+		if (typeof window === "undefined") {
+			initRef.current = { navId: "", restoredState: null };
+		} else {
+			const navId = ensureNavId(router);
+			const restoredState = restoreStateFromStorage<T>(
+				storage,
+				sessionKey,
+				navId,
+			);
+			initRef.current = { navId, restoredState };
+		}
 	}
 
 	const { navId, restoredState } = initRef.current;

@@ -32,6 +32,9 @@ describe("Next.js adapter", () => {
 		sessionStorage.clear();
 		mocks.pathname = "/products";
 		mocks.searchParams = new URLSearchParams();
+		// Sync window.location with mocked router state since
+		// getCurrentPath now reads window.location directly
+		window.history.pushState({}, "", "/products");
 	});
 
 	it("mounts without error and provides baqk context", () => {
@@ -79,6 +82,7 @@ describe("Next.js adapter", () => {
 	it("getCurrentPath includes search params", () => {
 		mocks.pathname = "/products";
 		mocks.searchParams = new URLSearchParams("cat=shoes&sort=price");
+		window.history.pushState({}, "", "/products?cat=shoes&sort=price");
 
 		const wrapper = createWrapper();
 		const { result } = renderHook(() => useBaqk(), { wrapper });

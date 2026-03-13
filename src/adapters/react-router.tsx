@@ -1,19 +1,16 @@
 import { useCallback, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import {
 	type BaqkAdapterProps,
 	createBaqkAdapter,
 } from "../context/create-adapter.js";
 import type { RouterAdapter } from "../core/types.js";
+import { useCurrentPath, useHistoryState } from "../utils/browser.js";
 
 function useReactRouterAdapter(): RouterAdapter {
 	const navigate = useNavigate();
-	const location = useLocation();
-
-	const getCurrentPath = useCallback(
-		() => location.pathname + location.search,
-		[location.pathname, location.search],
-	);
+	const getCurrentPath = useCurrentPath();
+	const { getHistoryState, replaceHistoryState } = useHistoryState();
 
 	const nav = useCallback(
 		(path: string, options?: { replace?: boolean }) => {
@@ -21,14 +18,6 @@ function useReactRouterAdapter(): RouterAdapter {
 		},
 		[navigate],
 	);
-
-	const getHistoryState = useCallback((): Record<string, unknown> | null => {
-		return (window.history.state as Record<string, unknown>) ?? null;
-	}, []);
-
-	const replaceHistoryState = useCallback((patch: Record<string, unknown>) => {
-		window.history.replaceState({ ...window.history.state, ...patch }, "");
-	}, []);
 
 	return useMemo(
 		() => ({

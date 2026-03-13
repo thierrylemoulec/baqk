@@ -2,6 +2,7 @@ import { type ReactNode, useCallback, useMemo, useRef } from "react";
 import { BaqkContext } from "../context/baqk-context.js";
 import type { RouterAdapter, StorageAdapter } from "../core/types.js";
 import { createSessionStorage } from "../storage/session-storage.js";
+import { useHistoryState } from "../utils/browser.js";
 import { generateNavId } from "../utils/id.js";
 
 export interface GenericBaqkAdapterProps {
@@ -41,13 +42,7 @@ export function BaqkAdapter({
 		[navigate],
 	);
 
-	const getHistoryState = useCallback((): Record<string, unknown> | null => {
-		return (window.history.state as Record<string, unknown>) ?? null;
-	}, []);
-
-	const replaceHistoryState = useCallback((patch: Record<string, unknown>) => {
-		window.history.replaceState({ ...window.history.state, ...patch }, "");
-	}, []);
+	const { getHistoryState, replaceHistoryState } = useHistoryState();
 
 	const router: RouterAdapter = useMemo(
 		() => ({

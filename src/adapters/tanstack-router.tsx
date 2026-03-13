@@ -5,23 +5,16 @@ import {
 	createBaqkAdapter,
 } from "../context/create-adapter.js";
 import type { RouterAdapter } from "../core/types.js";
+import { useCurrentPath, useHistoryState } from "../utils/browser.js";
 
 function useTanStackRouterAdapter(): RouterAdapter {
 	const navigate = useNavigate();
-	const routerState = useRouterState({
-		select: (s) => ({
-			pathname: s.location.pathname,
-			search: s.location.searchStr,
-		}),
-	});
+	// Subscribe to router state so the adapter re-renders on navigation.
+	// getCurrentPath reads window.location directly for shallow-URL compat.
+	useRouterState({ select: (s) => s.location.pathname });
 
-	const getCurrentPath = useCallback(
-		() =>
-			routerState.search
-				? `${routerState.pathname}?${routerState.search}`
-				: routerState.pathname,
-		[routerState.pathname, routerState.search],
-	);
+	const getCurrentPath = useCurrentPath();
+	const { getHistoryState, replaceHistoryState } = useHistoryState();
 
 	const nav = useCallback(
 		(path: string, options?: { replace?: boolean }) => {
@@ -29,14 +22,6 @@ function useTanStackRouterAdapter(): RouterAdapter {
 		},
 		[navigate],
 	);
-
-	const getHistoryState = useCallback((): Record<string, unknown> | null => {
-		return (window.history.state as Record<string, unknown>) ?? null;
-	}, []);
-
-	const replaceHistoryState = useCallback((patch: Record<string, unknown>) => {
-		window.history.replaceState({ ...window.history.state, ...patch }, "");
-	}, []);
 
 	return useMemo(
 		() => ({
