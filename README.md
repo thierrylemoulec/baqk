@@ -112,7 +112,9 @@ import { BaqkAdapter } from "baqk/adapters/tanstack";
 import { BaqkAdapter } from "baqk";
 
 <BaqkAdapter
-  navigate={(path) => myRouter.push(path)}
+  navigate={(path, options) =>
+    options?.replace ? myRouter.replace(path) : myRouter.push(path)
+  }
   getCurrentPath={() => window.location.pathname + window.location.search}
 >
   {children}
@@ -179,7 +181,7 @@ Extends `BaqkAdapterProps` with:
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `navigate` | `(path: string) => void` | Navigation function |
+| `navigate` | `(path: string, options?: { replace?: boolean }) => void` | Navigation function |
 | `getCurrentPath` | `() => string` | Returns current path + search params |
 
 ## How It Works

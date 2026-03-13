@@ -1,16 +1,36 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import {
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const navigateSpy = vi.fn();
+
+vi.mock("@tanstack/react-router", async () => {
+	const actual =
+		await vi.importActual<typeof import("@tanstack/react-router")>(
+			"@tanstack/react-router",
+		);
+	return {
+		...actual,
+		useNavigate: () => {
+			const navigate = actual.useNavigate();
+			return (options: { to: string; replace?: boolean }) => {
+				navigateSpy(options);
+				return navigate(options);
+			};
+		},
+	};
+});
+
+const {
 	Outlet,
 	RouterProvider,
 	createMemoryHistory,
 	createRootRoute,
 	createRoute,
 	createRouter,
-} from "@tanstack/react-router";
-import { useBaqk } from "baqk";
-import { BaqkAdapter } from "baqk/adapters/tanstack";
-import React from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+} = await import("@tanstack/react-router");
+const { useBaqk } = await import("baqk");
+const { BaqkAdapter } = await import("baqk/adapters/tanstack");
 
 let baqkRef: ReturnType<typeof useBaqk>;
 
@@ -52,6 +72,7 @@ function createTestRouter(initialPath: string) {
 describe("TanStack Router adapter", () => {
 	beforeEach(() => {
 		sessionStorage.clear();
+		navigateSpy.mockClear();
 	});
 
 	it("mounts and provides baqk context", async () => {
@@ -103,5 +124,9 @@ describe("TanStack Router adapter", () => {
 		});
 
 		expect(baqkRef.hasTrail).toBe(false);
+		expect(navigateSpy).toHaveBeenLastCalledWith({
+			to: "/products",
+			replace: true,
+		});
 	});
 });

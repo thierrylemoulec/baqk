@@ -60,7 +60,7 @@ describe("Next.js adapter", () => {
 		expect(target.current.previousEntry?.label).toBe("Products");
 	});
 
-	it("goBack calls router.push with previous path", () => {
+	it("goBack calls router.replace with previous path", () => {
 		const wrapper = createWrapper();
 		const { result } = renderHook(() => useBaqk(), { wrapper });
 
@@ -73,7 +73,7 @@ describe("Next.js adapter", () => {
 			detail.current.goBack();
 		});
 
-		expect(mocks.push).toHaveBeenCalledWith("/products");
+		expect(mocks.replace).toHaveBeenCalledWith("/products");
 	});
 
 	it("getCurrentPath includes search params", () => {

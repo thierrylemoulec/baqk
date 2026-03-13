@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("Generic adapter", () => {
 	let currentPath: string;
-	const navigateFn = vi.fn((path: string) => {
+	const navigateFn = vi.fn((path: string, _options?: { replace?: boolean }) => {
 		currentPath = path;
 	});
 
@@ -47,7 +47,7 @@ describe("Generic adapter", () => {
 			});
 		});
 
-		expect(navigateFn).toHaveBeenCalledWith("/products/42");
+		expect(navigateFn).toHaveBeenCalledWith("/products/42", undefined);
 
 		// Render a new hook instance to read updated trail from storage
 		const { result: target } = renderHook(() => useBaqk(), { wrapper });
@@ -69,7 +69,9 @@ describe("Generic adapter", () => {
 			detail.current.goBack();
 		});
 
-		expect(navigateFn).toHaveBeenLastCalledWith("/products");
+		expect(navigateFn).toHaveBeenLastCalledWith("/products", {
+			replace: true,
+		});
 
 		const { result: after } = renderHook(() => useBaqk(), { wrapper });
 		expect(after.current.hasTrail).toBe(false);
@@ -86,6 +88,6 @@ describe("Generic adapter", () => {
 			result.current.goBack();
 		});
 
-		expect(navigateFn).toHaveBeenCalledWith("/home");
+		expect(navigateFn).toHaveBeenCalledWith("/home", undefined);
 	});
 });

@@ -8,7 +8,7 @@ export interface GenericBaqkAdapterProps {
 	children: ReactNode;
 	sessionKey?: string;
 	storage?: StorageAdapter;
-	navigate: (path: string) => void;
+	navigate: (path: string, options?: { replace?: boolean }) => void;
 	getCurrentPath: () => string;
 }
 
@@ -35,8 +35,8 @@ export function BaqkAdapter({
 	);
 
 	const nav = useCallback(
-		(path: string, _options?: { replace?: boolean }) => {
-			navigate(path);
+		(path: string, options?: { replace?: boolean }) => {
+			navigate(path, options);
 		},
 		[navigate],
 	);

@@ -1,4 +1,18 @@
+import { STORAGE_PREFIX } from "../core/constants.js";
 import type { StorageAdapter } from "../core/types.js";
+
+function removeBaqkKeys(): void {
+	const keysToRemove: string[] = [];
+	for (let i = 0; i < sessionStorage.length; i++) {
+		const key = sessionStorage.key(i);
+		if (key?.startsWith(`${STORAGE_PREFIX}:`)) {
+			keysToRemove.push(key);
+		}
+	}
+	for (const key of keysToRemove) {
+		sessionStorage.removeItem(key);
+	}
+}
 
 export function createSessionStorage(): StorageAdapter {
 	return {
@@ -14,10 +28,10 @@ export function createSessionStorage(): StorageAdapter {
 				sessionStorage.setItem(key, value);
 			} catch {
 				console.warn(
-					"[baqk] sessionStorage quota exceeded, clearing old entries.",
+					"[baqk] sessionStorage quota exceeded, clearing baqk entries and retrying once.",
 				);
-				// Best-effort: try to clear and retry
 				try {
+					removeBaqkKeys();
 					sessionStorage.setItem(key, value);
 				} catch {
 					// Give up silently
@@ -33,17 +47,7 @@ export function createSessionStorage(): StorageAdapter {
 		},
 		clear(): void {
 			try {
-				// Only clear keys with our prefix
-				const keysToRemove: string[] = [];
-				for (let i = 0; i < sessionStorage.length; i++) {
-					const key = sessionStorage.key(i);
-					if (key?.startsWith("bcb:")) {
-						keysToRemove.push(key);
-					}
-				}
-				for (const key of keysToRemove) {
-					sessionStorage.removeItem(key);
-				}
+				removeBaqkKeys();
 			} catch {
 				// Ignore
 			}

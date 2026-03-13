@@ -30,6 +30,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "postbuild": "node scripts/ensure-next-use-client.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check src/",

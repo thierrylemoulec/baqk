@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { useBaqkContext } from "../context/baqk-context.js";
 import { HISTORY_STATE_KEY } from "../core/constants.js";
 import { restoreScroll, saveScroll } from "../core/scroll-manager.js";
+import { removeScroll } from "../core/scroll-manager.js";
 import {
+	removeState,
 	restoreState as restoreStateFromStorage,
 	saveState as saveStateToStorage,
 } from "../core/state-manager.js";
@@ -107,7 +109,7 @@ export function useBaqk<
 		(overrideFallback?: string) => {
 			const entry = popTrail(storage, sessionKey);
 			if (entry) {
-				router.navigate(entry.path);
+				router.navigate(entry.path, { replace: true });
 				// Stamp the new history entry with the original navId
 				// so the target page's auto-restore finds its saved state
 				router.replaceHistoryState({
@@ -124,8 +126,10 @@ export function useBaqk<
 	);
 
 	const clearAll = useCallback(() => {
+		removeState(storage, sessionKey, navId);
+		removeScroll(storage, sessionKey, navId);
 		clearTrail(storage, sessionKey);
-	}, [storage, sessionKey]);
+	}, [storage, sessionKey, navId]);
 
 	return {
 		goBack,

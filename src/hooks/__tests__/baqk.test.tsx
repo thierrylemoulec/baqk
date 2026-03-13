@@ -14,7 +14,7 @@ function createMockRouter(initialPath = "/products"): RouterAdapter & {
 		currentPath: initialPath,
 		historyState: {} as Record<string, unknown>,
 		getCurrentPath: () => mock.currentPath,
-		navigate: vi.fn((path: string) => {
+		navigate: vi.fn((path: string, _options?: { replace?: boolean }) => {
 			mock.currentPath = path;
 			mock.historyState = {};
 		}),
@@ -74,6 +74,9 @@ describe("useBaqk", () => {
 			act(() => detail.current.goBack());
 
 			expect(router.currentPath).toBe("/products");
+			expect(router.navigate).toHaveBeenLastCalledWith("/products", {
+				replace: true,
+			});
 		});
 
 		it("goBack navigates to fallback when trail is empty", () => {
@@ -344,6 +347,44 @@ describe("useBaqk", () => {
 			act(() => page2.current.goBack());
 
 			expect(router.currentPath).toBe("/next");
+		});
+
+		it("clearAll removes state saved for the current page", () => {
+			const { result } = renderHook(() => useBaqk<{ x: number }>(), {
+				wrapper,
+			});
+
+			act(() => {
+				result.current.saveState({ x: 42 });
+				result.current.clearAll();
+			});
+
+			expect(result.current.restoreState()).toBeNull();
+		});
+
+		it("clearAll removes scroll saved for the current page", () => {
+			Object.defineProperty(window, "scrollY", {
+				value: 275,
+				writable: true,
+				configurable: true,
+			});
+			vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+			vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+				cb(0);
+				return 0;
+			});
+
+			const { result: listing } = renderHook(() => useBaqk(), { wrapper });
+			act(() => listing.current.navigateWithTrail("/detail"));
+
+			const { result: detail } = renderHook(() => useBaqk(), { wrapper });
+			act(() => {
+				detail.current.clearAll();
+				detail.current.goBack("/products");
+			});
+
+			renderHook(() => useBaqk(), { wrapper });
+			expect(window.scrollTo).not.toHaveBeenCalled();
 		});
 	});
 });

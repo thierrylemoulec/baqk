@@ -1,9 +1,31 @@
 import { act, render, screen } from "@testing-library/react";
-import { useBaqk } from "baqk";
-import { BaqkAdapter } from "baqk/adapters/react-router";
 import React from "react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const navigateSpy = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+	const actual =
+		await vi.importActual<typeof import("react-router-dom")>(
+			"react-router-dom",
+		);
+	return {
+		...actual,
+		useNavigate: () => {
+			const navigate = actual.useNavigate();
+			return (to: string, options?: { replace?: boolean }) => {
+				navigateSpy(to, options);
+				return navigate(to, options);
+			};
+		},
+	};
+});
+
+const { useBaqk } = await import("baqk");
+const { BaqkAdapter } = await import("baqk/adapters/react-router");
+const { MemoryRouter, Route, Routes, useLocation } = await import(
+	"react-router-dom"
+);
 
 let baqkRef: ReturnType<typeof useBaqk>;
 
@@ -32,6 +54,10 @@ function TestApp({ initialPath }: { initialPath: string }) {
 }
 
 describe("React Router adapter", () => {
+	beforeEach(() => {
+		navigateSpy.mockClear();
+	});
+
 	it("navigateWithTrail changes route and records trail", () => {
 		render(<TestApp initialPath="/products" />);
 
@@ -59,6 +85,9 @@ describe("React Router adapter", () => {
 
 		expect(screen.getByTestId("path").textContent).toBe("/products");
 		expect(baqkRef.hasTrail).toBe(false);
+		expect(navigateSpy).toHaveBeenLastCalledWith("/products", {
+			replace: true,
+		});
 	});
 
 	it("goBack uses fallback when trail is empty", () => {
