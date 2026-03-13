@@ -3,6 +3,7 @@
 Smart back navigation with state preservation for React apps.
 
 [![npm](https://img.shields.io/npm/v/@thrylm/baqk)](https://www.npmjs.com/package/@thrylm/baqk)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@thrylm/baqk)](https://bundlephobia.com/package/@thrylm/baqk)
 [![license](https://img.shields.io/npm/l/@thrylm/baqk)](https://github.com/thierrylemoulec/baqk/blob/main/LICENSE)
 
 ## The Problem
@@ -16,6 +17,8 @@ npm install @thrylm/baqk
 ```
 
 > ESM-only. Requires `react >= 18`.
+
+> ~3.5 kB gzipped (core + hook). Each adapter adds ~500 B.
 
 ## Quick Start
 
