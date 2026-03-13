@@ -2,8 +2,8 @@
 
 Smart back navigation with state preservation for React apps.
 
-[![npm](https://img.shields.io/npm/v/baqk)](https://www.npmjs.com/package/baqk)
-[![license](https://img.shields.io/npm/l/baqk)](https://github.com/thierrylemoulec/baqk/blob/main/LICENSE)
+[![npm](https://img.shields.io/npm/v/@thrylm/baqk)](https://www.npmjs.com/package/@thrylm/baqk)
+[![license](https://img.shields.io/npm/l/@thrylm/baqk)](https://github.com/thierrylemoulec/baqk/blob/main/LICENSE)
 
 ## The Problem
 
@@ -12,7 +12,7 @@ User filters a list, clicks into a detail page, hits back — filters are gone. 
 ## Install
 
 ```bash
-npm install baqk
+npm install @thrylm/baqk
 ```
 
 > ESM-only. Requires `react >= 18`.
@@ -21,7 +21,7 @@ npm install baqk
 
 ```tsx
 // app.tsx — wrap your app with the adapter
-import { BaqkAdapter } from "baqk/adapters/react-router";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/react-router";
 
 function App() {
   return (
@@ -34,7 +34,7 @@ function App() {
 
 ```tsx
 // products.tsx — listing page
-import { useBaqk } from "baqk";
+import { useBaqk } from "@thrylm/baqk";
 
 function ProductList() {
   const { restoredState, saveState, navigateWithTrail } =
@@ -56,7 +56,7 @@ function ProductList() {
 
 ```tsx
 // product-detail.tsx — detail page
-import { useBaqk } from "baqk";
+import { useBaqk } from "@thrylm/baqk";
 
 function ProductDetail() {
   const { goBack, hasTrail, previousEntry } = useBaqk({
@@ -79,7 +79,7 @@ function ProductDetail() {
 ### React Router
 
 ```tsx
-import { BaqkAdapter } from "baqk/adapters/react-router";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/react-router";
 
 <BaqkAdapter>
   <RouterProvider router={router} />
@@ -89,7 +89,7 @@ import { BaqkAdapter } from "baqk/adapters/react-router";
 ### Next.js App Router
 
 ```tsx
-import { BaqkAdapter } from "baqk/adapters/next";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/next";
 
 <BaqkAdapter>
   {children}
@@ -99,7 +99,7 @@ import { BaqkAdapter } from "baqk/adapters/next";
 ### TanStack Router
 
 ```tsx
-import { BaqkAdapter } from "baqk/adapters/tanstack";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/tanstack";
 
 <BaqkAdapter>
   <RouterProvider router={router} />
@@ -109,7 +109,7 @@ import { BaqkAdapter } from "baqk/adapters/tanstack";
 ### Generic (any router)
 
 ```tsx
-import { BaqkAdapter } from "baqk";
+import { BaqkAdapter } from "@thrylm/baqk";
 
 <BaqkAdapter
   navigate={(path, options) =>
@@ -205,7 +205,7 @@ Use `sessionKey` to isolate trails per user or session:
 ### Custom storage
 
 ```tsx
-import { createMemoryStorage } from "baqk";
+import { createMemoryStorage } from "@thrylm/baqk";
 
 <BaqkAdapter storage={createMemoryStorage()}>
 ```
@@ -215,7 +215,7 @@ import { createMemoryStorage } from "baqk";
 Build an adapter for any router:
 
 ```tsx
-import { createBaqkAdapter } from "baqk";
+import { createBaqkAdapter } from "@thrylm/baqk";
 
 const MyBaqkAdapter = createBaqkAdapter(() => {
   // Return a RouterAdapter: { getCurrentPath, navigate, getHistoryState, replaceHistoryState }

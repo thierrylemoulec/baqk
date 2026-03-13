@@ -10,16 +10,16 @@
 
 ```ts
 // Main export — hook, generic adapter, types, storage, factory
-import { useBaqk, BaqkAdapter, createBaqkAdapter, createMemoryStorage, createSessionStorage } from "baqk";
+import { useBaqk, BaqkAdapter, createBaqkAdapter, createMemoryStorage, createSessionStorage } from "@thrylm/baqk";
 
 // React Router adapter
-import { BaqkAdapter } from "baqk/adapters/react-router";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/react-router";
 
 // Next.js App Router adapter
-import { BaqkAdapter } from "baqk/adapters/next";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/next";
 
 // TanStack Router adapter
-import { BaqkAdapter } from "baqk/adapters/tanstack";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/tanstack";
 ```
 
 ## Adapter Setup
@@ -27,7 +27,7 @@ import { BaqkAdapter } from "baqk/adapters/tanstack";
 ### React Router
 
 ```tsx
-import { BaqkAdapter } from "baqk/adapters/react-router";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/react-router";
 
 function App() {
   return (
@@ -41,7 +41,7 @@ function App() {
 ### Next.js App Router
 
 ```tsx
-import { BaqkAdapter } from "baqk/adapters/next";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/next";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return <BaqkAdapter>{children}</BaqkAdapter>;
@@ -51,7 +51,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 ### TanStack Router
 
 ```tsx
-import { BaqkAdapter } from "baqk/adapters/tanstack";
+import { BaqkAdapter } from "@thrylm/baqk/adapters/tanstack";
 
 function App() {
   return (
@@ -65,7 +65,7 @@ function App() {
 ### Generic (any router)
 
 ```tsx
-import { BaqkAdapter } from "baqk";
+import { BaqkAdapter } from "@thrylm/baqk";
 
 <BaqkAdapter
   navigate={(path) => myRouter.push(path)}
@@ -168,14 +168,14 @@ navigateWithTrail(`/products/${id}`, {
 ### Custom storage
 
 ```tsx
-import { createMemoryStorage } from "baqk";
+import { createMemoryStorage } from "@thrylm/baqk";
 <BaqkAdapter storage={createMemoryStorage()}>
 ```
 
 ### createBaqkAdapter factory
 
 ```tsx
-import { createBaqkAdapter } from "baqk";
+import { createBaqkAdapter } from "@thrylm/baqk";
 
 const MyAdapter = createBaqkAdapter(() => {
   // Must return: { getCurrentPath, navigate, getHistoryState, replaceHistoryState }

@@ -1,5 +1,5 @@
 {
-  "name": "baqk",
+  "name": "@thrylm/baqk",
   "version": "0.1.0",
   "description": "Smart back navigation with state preservation for React apps",
   "type": "module",
