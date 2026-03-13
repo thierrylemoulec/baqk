@@ -41,15 +41,11 @@
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
     "react-router": ">=6.0.0",
-    "react-router-dom": ">=6.0.0",
     "next": ">=13.0.0",
     "@tanstack/react-router": ">=1.0.0"
   },
   "peerDependenciesMeta": {
     "react-router": {
-      "optional": true
-    },
-    "react-router-dom": {
       "optional": true
     },
     "next": {
