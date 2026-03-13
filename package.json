@@ -1,0 +1,86 @@
+{
+  "name": "baqk",
+  "version": "0.1.0",
+  "description": "Smart back navigation with state preservation for React apps",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./adapters/react-router": {
+      "import": "./dist/adapters/react-router.js",
+      "types": "./dist/adapters/react-router.d.ts"
+    },
+    "./adapters/next": {
+      "import": "./dist/adapters/next-router.js",
+      "types": "./dist/adapters/next-router.d.ts"
+    },
+    "./adapters/tanstack": {
+      "import": "./dist/adapters/tanstack-router.js",
+      "types": "./dist/adapters/tanstack-router.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "react-router": ">=6.0.0",
+    "react-router-dom": ">=6.0.0",
+    "next": ">=13.0.0",
+    "@tanstack/react-router": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-router": {
+      "optional": true
+    },
+    "react-router-dom": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "@tanstack/react-router": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "jsdom": "^25.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "keywords": [
+    "react",
+    "navigation",
+    "back",
+    "breadcrumb",
+    "state-preservation",
+    "scroll-restoration"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thierrylemoulec/baqk"
+  }
+}

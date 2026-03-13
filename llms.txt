@@ -1,0 +1,206 @@
+# baqk
+
+> Smart back navigation with state preservation for React apps. ESM-only. Requires react >= 18.
+
+## Docs
+
+- [README](https://github.com/thierrylemoulec/baqk/blob/main/README.md)
+
+## Import Paths
+
+```ts
+// Main export — hook, generic adapter, types, storage, factory
+import { useBaqk, BaqkAdapter, createBaqkAdapter, createMemoryStorage, createSessionStorage } from "baqk";
+
+// React Router adapter
+import { BaqkAdapter } from "baqk/adapters/react-router";
+
+// Next.js App Router adapter
+import { BaqkAdapter } from "baqk/adapters/next";
+
+// TanStack Router adapter
+import { BaqkAdapter } from "baqk/adapters/tanstack";
+```
+
+## Adapter Setup
+
+### React Router
+
+```tsx
+import { BaqkAdapter } from "baqk/adapters/react-router";
+
+function App() {
+  return (
+    <BaqkAdapter>
+      <RouterProvider router={router} />
+    </BaqkAdapter>
+  );
+}
+```
+
+### Next.js App Router
+
+```tsx
+import { BaqkAdapter } from "baqk/adapters/next";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <BaqkAdapter>{children}</BaqkAdapter>;
+}
+```
+
+### TanStack Router
+
+```tsx
+import { BaqkAdapter } from "baqk/adapters/tanstack";
+
+function App() {
+  return (
+    <BaqkAdapter>
+      <RouterProvider router={router} />
+    </BaqkAdapter>
+  );
+}
+```
+
+### Generic (any router)
+
+```tsx
+import { BaqkAdapter } from "baqk";
+
+<BaqkAdapter
+  navigate={(path) => myRouter.push(path)}
+  getCurrentPath={() => window.location.pathname + window.location.search}
+>
+  {children}
+</BaqkAdapter>
+```
+
+All adapters accept optional `sessionKey?: string` and `storage?: StorageAdapter` props.
+The generic adapter additionally requires `navigate` and `getCurrentPath` props.
+
+## Hook API
+
+```ts
+interface BaqkOptions {
+  fallbackPath?: string;    // Path when goBack() has no trail
+  autoSaveScroll?: boolean; // Auto save/restore scroll (default: true)
+}
+
+interface BaqkResult<T extends Record<string, unknown> = Record<string, unknown>> {
+  restoredState: T | null;               // Synchronously available saved state
+  wasRestored: boolean;                  // Whether state was restored
+  saveState: (state: T) => void;         // Save state for current page
+  restoreState: () => T | null;          // Manually restore (rarely needed)
+  navigateWithTrail: (path: string, opts?: { label?: string; state?: T }) => void;
+  goBack: (fallbackPath?: string) => void;
+  hasTrail: boolean;
+  previousEntry: TrailEntry | null;
+  trail: readonly TrailEntry[];
+  clearAll: () => void;
+}
+
+interface TrailEntry {
+  path: string;
+  navId: string;
+  label?: string;
+  timestamp: number;
+}
+```
+
+Key details:
+- `restoredState` is computed synchronously via a lazy ref — no useEffect needed
+- `navigateWithTrail`'s `state` option saves state for the **current** page, not the destination
+- `goBack` pops the trail, navigates to the previous path, and re-stamps the navId for automatic restore
+
+## Key Pattern: State Restoration
+
+Use `restoredState` inside a `useState` initializer — NOT in a `useEffect`:
+
+```tsx
+// Listing page
+function ProductList() {
+  const { restoredState, saveState, navigateWithTrail } =
+    useBaqk<{ filters: Filters }>();
+
+  const [filters, setFilters] = useState(
+    () => restoredState?.filters ?? defaultFilters,
+  );
+
+  function openProduct(id: string) {
+    saveState({ filters });
+    navigateWithTrail(`/products/${id}`, { label: "Products" });
+  }
+
+  return <FilteredList filters={filters} onSelect={openProduct} />;
+}
+
+// Detail page
+function ProductDetail() {
+  const { goBack, hasTrail, previousEntry } = useBaqk({
+    fallbackPath: "/products",
+  });
+
+  return (
+    <button onClick={() => goBack()}>
+      {hasTrail ? `← ${previousEntry?.label}` : "← Products"}
+    </button>
+  );
+}
+```
+
+You can also pass state inline with navigation:
+
+```tsx
+navigateWithTrail(`/products/${id}`, {
+  label: "Products",
+  state: { filters },  // saves state for the CURRENT page
+});
+```
+
+## Advanced
+
+### Session key isolation
+
+```tsx
+<BaqkAdapter sessionKey={user.id}>
+```
+
+### Custom storage
+
+```tsx
+import { createMemoryStorage } from "baqk";
+<BaqkAdapter storage={createMemoryStorage()}>
+```
+
+### createBaqkAdapter factory
+
+```tsx
+import { createBaqkAdapter } from "baqk";
+
+const MyAdapter = createBaqkAdapter(() => {
+  // Must return: { getCurrentPath, navigate, getHistoryState, replaceHistoryState }
+  return useMyRouterAdapter();
+});
+```
+
+### Limits
+
+- Trail stack: max 50 entries (oldest evicted with their state/scroll data)
+- State size: max 100 KB per entry (oversized state silently dropped with console warning)
+
+## Source
+
+- [Types](https://github.com/thierrylemoulec/baqk/blob/main/src/core/types.ts): BaqkOptions, BaqkResult, TrailEntry, RouterAdapter, StorageAdapter
+- [Hook](https://github.com/thierrylemoulec/baqk/blob/main/src/hooks/baqk.ts): useBaqk implementation
+- [React Router adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/react-router.tsx)
+- [Next.js adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/next-router.tsx)
+- [TanStack adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/tanstack-router.tsx)
+- [Generic adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/generic.tsx)
+- [Adapter factory](https://github.com/thierrylemoulec/baqk/blob/main/src/context/create-adapter.tsx)
+
+## Optional
+
+- [Trail manager](https://github.com/thierrylemoulec/baqk/blob/main/src/core/trail-manager.ts)
+- [State manager](https://github.com/thierrylemoulec/baqk/blob/main/src/core/state-manager.ts)
+- [Scroll manager](https://github.com/thierrylemoulec/baqk/blob/main/src/core/scroll-manager.ts)
+- [Integration tests](https://github.com/thierrylemoulec/baqk/blob/main/src/__tests__/integration.test.tsx)
