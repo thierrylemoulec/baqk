@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
 
 // Import after mock is set up (vitest hoists vi.mock automatically)
 const { BaqkAdapter } = await import("baqk/adapters/next");
-const { useBaqk } = await import("baqk");
+const { useBaqk, useTrailClick } = await import("baqk");
 
 function createWrapper() {
 	return function Wrapper({ children }: { children: ReactNode }) {
@@ -41,34 +41,56 @@ describe("Next.js adapter", () => {
 		const wrapper = createWrapper();
 		const { result } = renderHook(() => useBaqk(), { wrapper });
 
-		expect(result.current.hasTrail).toBe(false);
+		expect(result.current.previousEntry).toBeNull();
 		expect(result.current.restoredState).toBeNull();
 	});
 
-	it("navigateWithTrail calls router.push", () => {
+	it("useTrailClick pushes trail entry", () => {
 		const wrapper = createWrapper();
-		const { result } = renderHook(() => useBaqk(), { wrapper });
+		const { result } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick("Products"),
+			}),
+			{ wrapper },
+		);
 
 		act(() => {
-			result.current.navigateWithTrail("/products/42", {
-				label: "Products",
-			});
+			result.current.trailClick({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
 		});
-
-		expect(mocks.push).toHaveBeenCalledWith("/products/42");
 
 		// Render a new hook instance to read updated trail from storage
 		const { result: target } = renderHook(() => useBaqk(), { wrapper });
-		expect(target.current.hasTrail).toBe(true);
+		expect(target.current.previousEntry).not.toBeNull();
 		expect(target.current.previousEntry?.label).toBe("Products");
 	});
 
 	it("goBack calls router.replace with previous path", () => {
 		const wrapper = createWrapper();
-		const { result } = renderHook(() => useBaqk(), { wrapper });
+		const { result } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick(),
+			}),
+			{ wrapper },
+		);
 
 		act(() => {
-			result.current.navigateWithTrail("/products/42");
+			result.current.trailClick({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
 		});
 
 		const { result: detail } = renderHook(() => useBaqk(), { wrapper });
@@ -85,10 +107,23 @@ describe("Next.js adapter", () => {
 		window.history.pushState({}, "", "/products?cat=shoes&sort=price");
 
 		const wrapper = createWrapper();
-		const { result } = renderHook(() => useBaqk(), { wrapper });
+		const { result } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick(),
+			}),
+			{ wrapper },
+		);
 
 		act(() => {
-			result.current.navigateWithTrail("/products/42");
+			result.current.trailClick({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
 		});
 
 		const { result: target } = renderHook(() => useBaqk(), { wrapper });

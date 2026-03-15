@@ -28,18 +28,11 @@ export interface BaqkResult<
 	T extends Record<string, unknown> = Record<string, unknown>,
 > {
 	goBack: (fallbackPath?: string) => void;
-	hasTrail: boolean;
 	previousEntry: TrailEntry | null;
-	trail: readonly TrailEntry[];
 	saveState: (state: T) => void;
-	restoreState: () => T | null;
 	restoredState: T | null;
 	wasRestored: boolean;
-	navigateWithTrail: (
-		path: string,
-		opts?: { label?: string; state?: T },
-	) => void;
-	clearAll: () => void;
+	clear: () => void;
 }
 
 export interface BaqkContextValue {

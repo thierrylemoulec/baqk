@@ -1,5 +1,6 @@
-// Main hook
+// Main hooks
 export { useBaqk } from "./hooks/baqk.js";
+export { useTrailClick } from "./hooks/trail-click.js";
 
 // Adapter factory for custom routers
 export { createBaqkAdapter } from "./context/create-adapter.js";

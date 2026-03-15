@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { BaqkAdapter, useBaqk } from "baqk";
+import { BaqkAdapter, useBaqk, useTrailClick } from "baqk";
 import React, { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -33,35 +33,59 @@ describe("Generic adapter", () => {
 		const wrapper = createWrapper();
 		const { result } = renderHook(() => useBaqk(), { wrapper });
 
-		expect(result.current.hasTrail).toBe(false);
+		expect(result.current.previousEntry).toBeNull();
 		expect(result.current.restoredState).toBeNull();
 	});
 
-	it("navigateWithTrail calls the provided navigate function", () => {
+	it("useTrailClick + goBack calls the provided navigate function", () => {
 		const wrapper = createWrapper();
-		const { result } = renderHook(() => useBaqk(), { wrapper });
+		const { result } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick("Products"),
+			}),
+			{ wrapper },
+		);
 
 		act(() => {
-			result.current.navigateWithTrail("/products/42", {
-				label: "Products",
-			});
+			result.current.trailClick({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
+			currentPath = "/products/42";
 		});
-
-		expect(navigateFn).toHaveBeenCalledWith("/products/42", undefined);
 
 		// Render a new hook instance to read updated trail from storage
 		const { result: target } = renderHook(() => useBaqk(), { wrapper });
-		expect(target.current.hasTrail).toBe(true);
+		expect(target.current.previousEntry).not.toBeNull();
 		expect(target.current.previousEntry?.path).toBe("/products");
 		expect(target.current.previousEntry?.label).toBe("Products");
 	});
 
 	it("goBack calls navigate with previous path", () => {
 		const wrapper = createWrapper();
-		const { result } = renderHook(() => useBaqk(), { wrapper });
+		const { result } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick(),
+			}),
+			{ wrapper },
+		);
 
 		act(() => {
-			result.current.navigateWithTrail("/products/42");
+			result.current.trailClick({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
+			currentPath = "/products/42";
 		});
 
 		const { result: detail } = renderHook(() => useBaqk(), { wrapper });
@@ -74,7 +98,7 @@ describe("Generic adapter", () => {
 		});
 
 		const { result: after } = renderHook(() => useBaqk(), { wrapper });
-		expect(after.current.hasTrail).toBe(false);
+		expect(after.current.previousEntry).toBeNull();
 	});
 
 	it("goBack uses fallback when no trail exists", () => {

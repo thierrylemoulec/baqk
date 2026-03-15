@@ -9,8 +9,8 @@
 ## Import Paths
 
 ```ts
-// Main export — hook, generic adapter, types, storage, factory
-import { useBaqk, BaqkAdapter, createBaqkAdapter, createMemoryStorage, createSessionStorage } from "@thrylm/baqk";
+// Main export — hooks, generic adapter, types, storage, factory
+import { useBaqk, useTrailClick, BaqkAdapter, createBaqkAdapter, createMemoryStorage, createSessionStorage } from "@thrylm/baqk";
 
 // React Router adapter
 import { BaqkAdapter } from "@thrylm/baqk/adapters/react-router";
@@ -80,6 +80,27 @@ The generic adapter additionally requires `navigate` and `getCurrentPath` props.
 
 ## Hook API
 
+### useTrailClick
+
+```ts
+function useTrailClick(label?: string): (e?: React.MouseEvent) => void
+```
+
+Returns an `onClick` handler that pushes a trail entry without navigating. Attach to same-tab internal `<Link>`/anchor navigations — the link handles navigation natively, no `preventDefault` needed.
+
+- Saves scroll and pushes current page onto trail on left-click
+- Skips on modifier keys, middle-click, or `defaultPrevented`
+- Skips new-tab, download, external, and hash-only anchor clicks
+- Captures path at click time via `getCurrentPath()` (reads `window.location`, compatible with nuqs/shallow updates)
+- Shares the same navId as `useBaqk()` — both use `ensureNavId` (idempotent)
+
+```tsx
+const trailClick = useTrailClick("Products");
+<Link to={`/products/${id}`} onClick={trailClick}>{name}</Link>
+```
+
+### useBaqk
+
 ```ts
 interface BaqkOptions {
   fallbackPath?: string;    // Path when goBack() has no trail
@@ -87,16 +108,12 @@ interface BaqkOptions {
 }
 
 interface BaqkResult<T extends Record<string, unknown> = Record<string, unknown>> {
+  goBack: (fallbackPath?: string) => void;
+  previousEntry: TrailEntry | null;
+  saveState: (state: T) => void;         // Save state for current page
   restoredState: T | null;               // Synchronously available saved state
   wasRestored: boolean;                  // Whether state was restored
-  saveState: (state: T) => void;         // Save state for current page
-  restoreState: () => T | null;          // Manually restore (rarely needed)
-  navigateWithTrail: (path: string, opts?: { label?: string; state?: T }) => void;
-  goBack: (fallbackPath?: string) => void;
-  hasTrail: boolean;
-  previousEntry: TrailEntry | null;
-  trail: readonly TrailEntry[];
-  clearAll: () => void;
+  clear: () => void;
 }
 
 interface TrailEntry {
@@ -109,7 +126,7 @@ interface TrailEntry {
 
 Key details:
 - `restoredState` is computed synchronously via a lazy ref — no useEffect needed
-- `navigateWithTrail`'s `state` option saves state for the **current** page, not the destination
+- Use `useTrailClick` to push trail entries — it handles scroll saving and trail push on click
 - `goBack` pops the trail, navigates to the previous path, and re-stamps the navId for automatic restore
 
 ## Key Pattern: State Restoration
@@ -119,42 +136,34 @@ Use `restoredState` inside a `useState` initializer — NOT in a `useEffect`:
 ```tsx
 // Listing page
 function ProductList() {
-  const { restoredState, saveState, navigateWithTrail } =
-    useBaqk<{ filters: Filters }>();
+  const { restoredState, saveState } = useBaqk<{ filters: Filters }>();
+  const trailClick = useTrailClick("Products");
 
   const [filters, setFilters] = useState(
     () => restoredState?.filters ?? defaultFilters,
   );
 
-  function openProduct(id: string) {
-    saveState({ filters });
-    navigateWithTrail(`/products/${id}`, { label: "Products" });
-  }
+  useEffect(() => { saveState({ filters }); }, [filters]);
 
-  return <FilteredList filters={filters} onSelect={openProduct} />;
+  return products.map((p) => (
+    <Link to={`/products/${p.id}`} onClick={trailClick}>
+      {p.name}
+    </Link>
+  ));
 }
 
 // Detail page
 function ProductDetail() {
-  const { goBack, hasTrail, previousEntry } = useBaqk({
+  const { goBack, previousEntry } = useBaqk({
     fallbackPath: "/products",
   });
 
   return (
     <button onClick={() => goBack()}>
-      {hasTrail ? `← ${previousEntry?.label}` : "← Products"}
+      {previousEntry ? `← ${previousEntry.label}` : "← Products"}
     </button>
   );
 }
-```
-
-You can also pass state inline with navigation:
-
-```tsx
-navigateWithTrail(`/products/${id}`, {
-  label: "Products",
-  state: { filters },  // saves state for the CURRENT page
-});
 ```
 
 ## Advanced
@@ -191,7 +200,8 @@ const MyAdapter = createBaqkAdapter(() => {
 ## Source
 
 - [Types](https://github.com/thierrylemoulec/baqk/blob/main/src/core/types.ts): BaqkOptions, BaqkResult, TrailEntry, RouterAdapter, StorageAdapter
-- [Hook](https://github.com/thierrylemoulec/baqk/blob/main/src/hooks/baqk.ts): useBaqk implementation
+- [Hook — useBaqk](https://github.com/thierrylemoulec/baqk/blob/main/src/hooks/baqk.ts): useBaqk implementation
+- [Hook — useTrailClick](https://github.com/thierrylemoulec/baqk/blob/main/src/hooks/trail-click.ts): useTrailClick implementation
 - [React Router adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/react-router.tsx)
 - [Next.js adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/next-router.tsx)
 - [TanStack adapter](https://github.com/thierrylemoulec/baqk/blob/main/src/adapters/tanstack-router.tsx)

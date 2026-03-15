@@ -29,13 +29,15 @@ const {
 	createRoute,
 	createRouter,
 } = await import("@tanstack/react-router");
-const { useBaqk } = await import("baqk");
+const { useBaqk, useTrailClick } = await import("baqk");
 const { BaqkAdapter } = await import("baqk/adapters/tanstack");
 
 let baqkRef: ReturnType<typeof useBaqk>;
+let trailClickRef: ReturnType<typeof useTrailClick>;
 
 function BaqkCapture() {
 	baqkRef = useBaqk({ fallbackPath: "/products" });
+	trailClickRef = useTrailClick("Products");
 	return null;
 }
 
@@ -86,10 +88,10 @@ describe("TanStack Router adapter", () => {
 		await waitFor(() => {
 			expect(screen.getByTestId("page").textContent).toBe("products");
 		});
-		expect(baqkRef.hasTrail).toBe(false);
+		expect(baqkRef.previousEntry).toBeNull();
 	});
 
-	it("navigateWithTrail records trail entry", async () => {
+	it("useTrailClick records trail entry", async () => {
 		const router = createTestRouter("/products");
 		await router.load();
 		render(<RouterProvider router={router} />);
@@ -98,12 +100,26 @@ describe("TanStack Router adapter", () => {
 			expect(screen.getByTestId("page")).toBeTruthy();
 		});
 
+		act(() => {
+			trailClickRef({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
+		});
+
+		// Navigate to trigger a re-render so previousEntry is recomputed
 		await act(async () => {
-			baqkRef.navigateWithTrail("/products/42", { label: "Products" });
+			router.navigate({ to: "/products/42" });
 			await router.invalidate();
 		});
 
-		expect(baqkRef.hasTrail).toBe(true);
+		await waitFor(() => {
+			expect(baqkRef.previousEntry).not.toBeNull();
+		});
 		expect(baqkRef.previousEntry?.label).toBe("Products");
 	});
 
@@ -116,9 +132,15 @@ describe("TanStack Router adapter", () => {
 			expect(screen.getByTestId("page")).toBeTruthy();
 		});
 
-		await act(async () => {
-			baqkRef.navigateWithTrail("/products/42");
-			await router.invalidate();
+		act(() => {
+			trailClickRef({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
 		});
 
 		await act(async () => {
@@ -126,7 +148,7 @@ describe("TanStack Router adapter", () => {
 			await router.invalidate();
 		});
 
-		expect(baqkRef.hasTrail).toBe(false);
+		expect(baqkRef.previousEntry).toBeNull();
 		expect(navigateSpy).toHaveBeenLastCalledWith({
 			to: "/products",
 			replace: true,

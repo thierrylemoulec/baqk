@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BaqkContext } from "../context/baqk-context.js";
 import type { RouterAdapter } from "../core/types.js";
 import { useBaqk } from "../hooks/baqk.js";
+import { useTrailClick } from "../hooks/trail-click.js";
 import { createMemoryStorage } from "../storage/memory-storage.js";
 
 function createMockRouter(initialPath: string): RouterAdapter & {
@@ -25,6 +26,19 @@ function createMockRouter(initialPath: string): RouterAdapter & {
 		},
 	};
 	return mock;
+}
+
+function simulateClick(
+	trailClick: (e?: React.MouseEvent) => void,
+) {
+	trailClick({
+		button: 0,
+		defaultPrevented: false,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+	} as React.MouseEvent);
 }
 
 describe("Navigation flows", () => {
@@ -60,15 +74,21 @@ describe("Navigation flows", () => {
 	it("Path A: filtered listing → detail → back restores state and scroll", () => {
 		Object.defineProperty(window, "scrollY", { value: 340 });
 
-		// 1. On filtered listing — save state and navigate to detail
-		const { result: listing } = renderHook(() => useBaqk(), { wrapper });
+		// 1. On filtered listing — save state and click to navigate to detail
+		const { result: listing } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick("Products"),
+			}),
+			{ wrapper },
+		);
 		act(() => {
-			listing.current.saveState({
+			listing.current.baqk.saveState({
 				filters: { category: "shoes", sort: "price" },
 			});
-			listing.current.navigateWithTrail("/products/42", {
-				label: "Products",
-			});
+			simulateClick(listing.current.trailClick);
+			router.currentPath = "/products/42";
+			router.historyState = {};
 		});
 		expect(router.currentPath).toBe("/products/42");
 
@@ -77,7 +97,7 @@ describe("Navigation flows", () => {
 			() => useBaqk({ fallbackPath: "/products" }),
 			{ wrapper },
 		);
-		expect(detail.current.hasTrail).toBe(true);
+		expect(detail.current.previousEntry).not.toBeNull();
 		expect(detail.current.previousEntry?.label).toBe("Products");
 
 		// 3. Go back
@@ -102,7 +122,7 @@ describe("Navigation flows", () => {
 			{ wrapper },
 		);
 
-		expect(result.current.hasTrail).toBe(false);
+		expect(result.current.previousEntry).toBeNull();
 		expect(result.current.wasRestored).toBe(false);
 		expect(result.current.restoredState).toBeNull();
 
@@ -111,30 +131,41 @@ describe("Navigation flows", () => {
 	});
 
 	it("Path C: listing → detail → reviews → back → back restores each level", () => {
-		// 1. Listing
-		const { result: listing } = renderHook(() => useBaqk(), { wrapper });
+		// 1. Listing — save state and navigate to detail
+		const { result: listing } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick("Products"),
+			}),
+			{ wrapper },
+		);
 		act(() => {
-			listing.current.saveState({ filters: { category: "shoes" } });
-			listing.current.navigateWithTrail("/products/42", {
-				label: "Products",
-			});
+			listing.current.baqk.saveState({ filters: { category: "shoes" } });
+			simulateClick(listing.current.trailClick);
+			router.currentPath = "/products/42";
+			router.historyState = {};
 		});
 
 		// 2. Detail — save state and go deeper
-		const { result: detail } = renderHook(() => useBaqk(), { wrapper });
+		const { result: detail } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick("Product #42"),
+			}),
+			{ wrapper },
+		);
 		act(() => {
-			detail.current.saveState({ selectedTab: "specs" });
-			detail.current.navigateWithTrail("/products/42/reviews", {
-				label: "Product #42",
-			});
+			detail.current.baqk.saveState({ selectedTab: "specs" });
+			simulateClick(detail.current.trailClick);
+			router.currentPath = "/products/42/reviews";
+			router.historyState = {};
 		});
 
-		// 3. Reviews — trail has 2 entries
+		// 3. Reviews — previousEntry points to detail
 		const { result: reviews } = renderHook(
 			() => useBaqk({ fallbackPath: "/products" }),
 			{ wrapper },
 		);
-		expect(reviews.current.trail).toHaveLength(2);
 		expect(reviews.current.previousEntry?.label).toBe("Product #42");
 
 		// 4. Back to detail — detail state restored
@@ -147,7 +178,6 @@ describe("Navigation flows", () => {
 		expect(backDetail.current.restoredState).toEqual({
 			selectedTab: "specs",
 		});
-		expect(backDetail.current.trail).toHaveLength(1);
 
 		// 5. Back to listing — listing state restored
 		act(() => backDetail.current.goBack());
@@ -167,12 +197,18 @@ describe("Navigation flows", () => {
 				{children}
 			</BaqkContext.Provider>
 		);
-		const { result: userA } = renderHook(() => useBaqk(), {
-			wrapper: wrapperA,
-		});
+		const { result: userA } = renderHook(
+			() => ({
+				baqk: useBaqk(),
+				trailClick: useTrailClick(),
+			}),
+			{ wrapper: wrapperA },
+		);
 		act(() => {
-			userA.current.saveState({ secret: "data" });
-			userA.current.navigateWithTrail("/page2");
+			userA.current.baqk.saveState({ secret: "data" });
+			simulateClick(userA.current.trailClick);
+			router.currentPath = "/page2";
+			router.historyState = {};
 		});
 
 		const wrapperB = ({ children }: { children: ReactNode }) => (
@@ -184,7 +220,7 @@ describe("Navigation flows", () => {
 			wrapper: wrapperB,
 		});
 
-		expect(userB.current.hasTrail).toBe(false);
+		expect(userB.current.previousEntry).toBeNull();
 		expect(userB.current.wasRestored).toBe(false);
 		expect(userB.current.restoredState).toBeNull();
 	});

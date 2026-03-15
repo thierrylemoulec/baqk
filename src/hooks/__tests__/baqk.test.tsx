@@ -5,6 +5,7 @@ import { BaqkContext } from "../../context/baqk-context.js";
 import type { BaqkContextValue, RouterAdapter } from "../../core/types.js";
 import { createMemoryStorage } from "../../storage/memory-storage.js";
 import { useBaqk } from "../baqk.js";
+import { useTrailClick } from "../trail-click.js";
 
 function createMockRouter(initialPath = "/products"): RouterAdapter & {
 	historyState: Record<string, unknown>;
@@ -49,30 +50,38 @@ describe("useBaqk", () => {
 	});
 
 	describe("navigation", () => {
-		it("navigateWithTrail moves to new path and records current page on trail", () => {
-			const { result } = renderHook(() => useBaqk(), { wrapper });
+		it("useTrailClick pushes trail entry, goBack returns to previous page", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick("Products"),
+				}),
+				{ wrapper },
+			);
 
+			// Simulate a left-click that pushes a trail entry
 			act(() => {
-				result.current.navigateWithTrail("/products/42", {
-					label: "Products",
-				});
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				// Simulate navigation (the link would do this)
+				router.currentPath = "/products/42";
+				router.historyState = {};
 			});
 
-			expect(router.currentPath).toBe("/products/42");
-
+			// On the detail page — trail points back
 			const { result: target } = renderHook(() => useBaqk(), { wrapper });
-			expect(target.current.hasTrail).toBe(true);
+			expect(target.current.previousEntry).not.toBeNull();
 			expect(target.current.previousEntry?.path).toBe("/products");
 			expect(target.current.previousEntry?.label).toBe("Products");
-		});
 
-		it("goBack returns to previous page when trail has entries", () => {
-			const { result } = renderHook(() => useBaqk(), { wrapper });
-			act(() => result.current.navigateWithTrail("/products/42"));
-
-			const { result: detail } = renderHook(() => useBaqk(), { wrapper });
-			act(() => detail.current.goBack());
-
+			// Go back
+			act(() => target.current.goBack());
 			expect(router.currentPath).toBe("/products");
 			expect(router.navigate).toHaveBeenLastCalledWith("/products", {
 				replace: true,
@@ -110,14 +119,27 @@ describe("useBaqk", () => {
 
 	describe("state preservation", () => {
 		it("restoredState contains saved state after navigating back", () => {
-			const { result: listing } = renderHook(() => useBaqk(), {
-				wrapper,
-			});
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
 			act(() => {
-				listing.current.saveState({
+				result.current.baqk.saveState({
 					filters: { category: "shoes" },
 				});
-				listing.current.navigateWithTrail("/products/42");
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/products/42";
+				router.historyState = {};
 			});
 
 			const { result: detail } = renderHook(() => useBaqk(), {
@@ -136,8 +158,25 @@ describe("useBaqk", () => {
 		});
 
 		it("wasRestored is false when no state exists for this page", () => {
-			const { result: page1 } = renderHook(() => useBaqk(), { wrapper });
-			act(() => page1.current.navigateWithTrail("/next"));
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
+			act(() => {
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/next";
+				router.historyState = {};
+			});
 
 			// Fresh page with no prior state
 			const { result: page2 } = renderHook(() => useBaqk(), { wrapper });
@@ -145,40 +184,26 @@ describe("useBaqk", () => {
 			expect(page2.current.restoredState).toBeNull();
 		});
 
-		it("navigateWithTrail saves inline state for current page", () => {
-			const { result: page1 } = renderHook(() => useBaqk(), { wrapper });
-			act(() => {
-				page1.current.navigateWithTrail("/next", {
-					state: { sort: "price" },
-				});
-			});
-
-			const { result: page2 } = renderHook(() => useBaqk(), { wrapper });
-			act(() => page2.current.goBack());
-
-			const { result: restored } = renderHook(() => useBaqk(), {
-				wrapper,
-			});
-			expect(restored.current.restoredState).toEqual({ sort: "price" });
-		});
-
-		it("restoreState returns previously saved state", () => {
-			const { result } = renderHook(() => useBaqk<{ x: number }>(), {
-				wrapper,
-			});
-
-			act(() => result.current.saveState({ x: 42 }));
-
-			expect(result.current.restoreState()).toEqual({ x: 42 });
-		});
-
 		it("restoredState is usable in useState initializer on first render", () => {
-			const { result: listing } = renderHook(() => useBaqk(), {
-				wrapper,
-			});
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
 			act(() => {
-				listing.current.saveState({ page: 3 });
-				listing.current.navigateWithTrail("/detail");
+				result.current.baqk.saveState({ page: 3 });
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/detail";
+				router.historyState = {};
 			});
 			const { result: detail } = renderHook(() => useBaqk(), {
 				wrapper,
@@ -188,25 +213,38 @@ describe("useBaqk", () => {
 			// useState initializer runs exactly once, during the first render.
 			// If restoredState were set via an effect (async), it would be null
 			// at initializer time and page would be stuck at the default of 1.
-			const { result } = renderHook(
+			const { result: page } = renderHook(
 				() => {
 					const { restoredState } = useBaqk<{ page: number }>();
-					const [page] = useState(() => restoredState?.page ?? 1);
-					return page;
+					const [p] = useState(() => restoredState?.page ?? 1);
+					return p;
 				},
 				{ wrapper },
 			);
 
-			expect(result.current).toBe(3);
+			expect(page.current).toBe(3);
 		});
 
 		it("restoredState is available on first render without re-rendering", () => {
-			const { result: listing } = renderHook(() => useBaqk(), {
-				wrapper,
-			});
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
 			act(() => {
-				listing.current.saveState({ x: 1 });
-				listing.current.navigateWithTrail("/next");
+				result.current.baqk.saveState({ x: 1 });
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/next";
+				router.historyState = {};
 			});
 			const { result: page2 } = renderHook(() => useBaqk(), {
 				wrapper,
@@ -230,11 +268,26 @@ describe("useBaqk", () => {
 		});
 
 		it("last saveState before navigating is the one restored", () => {
-			const { result } = renderHook(() => useBaqk(), { wrapper });
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
 			act(() => {
-				result.current.saveState({ v: 1 });
-				result.current.saveState({ v: 2 });
-				result.current.navigateWithTrail("/next");
+				result.current.baqk.saveState({ v: 1 });
+				result.current.baqk.saveState({ v: 2 });
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/next";
+				router.historyState = {};
 			});
 
 			const { result: page2 } = renderHook(() => useBaqk(), {
@@ -268,10 +321,25 @@ describe("useBaqk", () => {
 		});
 
 		it("saves and restores scroll position during back navigation", () => {
-			const { result: listing } = renderHook(() => useBaqk(), {
-				wrapper,
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
+			act(() => {
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/detail";
+				router.historyState = {};
 			});
-			act(() => listing.current.navigateWithTrail("/detail"));
 
 			const { result: detail } = renderHook(() => useBaqk(), {
 				wrapper,
@@ -283,11 +351,27 @@ describe("useBaqk", () => {
 		});
 
 		it("does not save or restore scroll when autoSaveScroll is false", () => {
-			const { result: listing } = renderHook(
-				() => useBaqk({ autoSaveScroll: false }),
+			// useTrailClick always saves scroll, so we test that useBaqk
+			// with autoSaveScroll:false does NOT restore it
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk({ autoSaveScroll: false }),
+					trailClick: useTrailClick(),
+				}),
 				{ wrapper },
 			);
-			act(() => listing.current.navigateWithTrail("/detail"));
+			act(() => {
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/detail";
+				router.historyState = {};
+			});
 
 			const { result: detail } = renderHook(() => useBaqk(), {
 				wrapper,
@@ -306,10 +390,25 @@ describe("useBaqk", () => {
 				storage,
 				sessionKey: "user-a",
 			});
-			const { result: userA } = renderHook(() => useBaqk(), {
-				wrapper: wrapperA,
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper: wrapperA },
+			);
+			act(() => {
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/secret";
+				router.historyState = {};
 			});
-			act(() => userA.current.navigateWithTrail("/secret"));
 
 			const wrapperB = createWrapper({
 				router,
@@ -319,50 +418,69 @@ describe("useBaqk", () => {
 			const { result: userB } = renderHook(() => useBaqk(), {
 				wrapper: wrapperB,
 			});
-			expect(userB.current.hasTrail).toBe(false);
+			expect(userB.current.previousEntry).toBeNull();
 		});
 
-		it("clearAll removes all trail entries", () => {
-			const { result } = renderHook(() => useBaqk(), { wrapper });
-			act(() => result.current.navigateWithTrail("/a"));
-
-			const { result: page2 } = renderHook(() => useBaqk(), { wrapper });
-			expect(page2.current.hasTrail).toBe(true);
-
-			act(() => page2.current.clearAll());
-
-			const { result: after } = renderHook(() => useBaqk(), { wrapper });
-			expect(after.current.hasTrail).toBe(false);
-		});
-
-		it("clearAll prevents state restoration for cleared entries", () => {
-			const { result: page1 } = renderHook(() => useBaqk(), { wrapper });
+		it("clear removes all trail entries", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
 			act(() => {
-				page1.current.saveState({ x: 1 });
-				page1.current.navigateWithTrail("/next");
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/a";
+				router.historyState = {};
 			});
 
 			const { result: page2 } = renderHook(() => useBaqk(), { wrapper });
-			act(() => page2.current.clearAll());
+			expect(page2.current.previousEntry).not.toBeNull();
+
+			act(() => page2.current.clear());
+
+			const { result: after } = renderHook(() => useBaqk(), { wrapper });
+			expect(after.current.previousEntry).toBeNull();
+		});
+
+		it("clear prevents state restoration for cleared entries", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
+			act(() => {
+				result.current.baqk.saveState({ x: 1 });
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/next";
+				router.historyState = {};
+			});
+
+			const { result: page2 } = renderHook(() => useBaqk(), { wrapper });
+			act(() => page2.current.clear());
 			act(() => page2.current.goBack());
 
 			expect(router.currentPath).toBe("/next");
 		});
 
-		it("clearAll removes state saved for the current page", () => {
-			const { result } = renderHook(() => useBaqk<{ x: number }>(), {
-				wrapper,
-			});
-
-			act(() => {
-				result.current.saveState({ x: 42 });
-				result.current.clearAll();
-			});
-
-			expect(result.current.restoreState()).toBeNull();
-		});
-
-		it("clearAll removes scroll saved for the current page", () => {
+		it("clear removes scroll saved for the current page", () => {
 			Object.defineProperty(window, "scrollY", {
 				value: 275,
 				writable: true,
@@ -374,12 +492,29 @@ describe("useBaqk", () => {
 				return 0;
 			});
 
-			const { result: listing } = renderHook(() => useBaqk(), { wrapper });
-			act(() => listing.current.navigateWithTrail("/detail"));
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
+			act(() => {
+				result.current.trailClick({
+					button: 0,
+					defaultPrevented: false,
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: false,
+					altKey: false,
+				} as React.MouseEvent);
+				router.currentPath = "/detail";
+				router.historyState = {};
+			});
 
 			const { result: detail } = renderHook(() => useBaqk(), { wrapper });
 			act(() => {
-				detail.current.clearAll();
+				detail.current.clear();
 				detail.current.goBack("/products");
 			});
 

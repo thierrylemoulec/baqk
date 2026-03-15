@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useBaqkContext } from "../context/baqk-context.js";
 import { HISTORY_STATE_KEY } from "../core/constants.js";
-import { restoreScroll, saveScroll } from "../core/scroll-manager.js";
+import { ensureNavId } from "../core/ensure-nav-id.js";
+import { restoreScroll } from "../core/scroll-manager.js";
 import { removeScroll } from "../core/scroll-manager.js";
 import {
 	removeState,
@@ -10,26 +11,10 @@ import {
 } from "../core/state-manager.js";
 import {
 	clearTrail,
-	getTrail,
 	peekTrail,
 	popTrail,
-	pushTrail,
 } from "../core/trail-manager.js";
-import type { BaqkOptions, BaqkResult, TrailEntry } from "../core/types.js";
-import { generateNavId } from "../utils/id.js";
-
-function ensureNavId(router: {
-	getHistoryState(): Record<string, unknown> | null;
-	replaceHistoryState(patch: Record<string, unknown>): void;
-}): string {
-	const state = router.getHistoryState();
-	if (state && typeof state[HISTORY_STATE_KEY] === "string") {
-		return state[HISTORY_STATE_KEY];
-	}
-	const navId = generateNavId();
-	router.replaceHistoryState({ [HISTORY_STATE_KEY]: navId });
-	return navId;
-}
+import type { BaqkOptions, BaqkResult } from "../core/types.js";
 
 export function useBaqk<
 	T extends Record<string, unknown> = Record<string, unknown>,
@@ -70,9 +55,7 @@ export function useBaqk<
 	}, [autoSaveScroll, storage, sessionKey, navId]);
 
 	// --- Computed values (read during render, no state needed) ---
-	const trail = getTrail(storage, sessionKey);
 	const previousEntry = peekTrail(storage, sessionKey);
-	const hasTrail = trail.length > 0;
 
 	// --- Callbacks ---
 	const saveState = useCallback(
@@ -80,33 +63,6 @@ export function useBaqk<
 			saveStateToStorage(storage, sessionKey, navId, state);
 		},
 		[storage, sessionKey, navId],
-	);
-
-	const restoreState = useCallback((): T | null => {
-		return restoreStateFromStorage<T>(storage, sessionKey, navId);
-	}, [storage, sessionKey, navId]);
-
-	const navigateWithTrail = useCallback(
-		(path: string, opts?: { label?: string; state?: T }) => {
-			if (autoSaveScroll) {
-				saveScroll(storage, sessionKey, navId);
-			}
-
-			if (opts?.state) {
-				saveStateToStorage(storage, sessionKey, navId, opts.state);
-			}
-
-			const entry: TrailEntry = {
-				path: router.getCurrentPath(),
-				navId,
-				label: opts?.label,
-				timestamp: Date.now(),
-			};
-			pushTrail(storage, sessionKey, entry);
-
-			router.navigate(path);
-		},
-		[router, storage, sessionKey, navId, autoSaveScroll],
 	);
 
 	const goBack = useCallback(
@@ -129,7 +85,7 @@ export function useBaqk<
 		[router, storage, sessionKey, fallbackPath],
 	);
 
-	const clearAll = useCallback(() => {
+	const clear = useCallback(() => {
 		removeState(storage, sessionKey, navId);
 		removeScroll(storage, sessionKey, navId);
 		clearTrail(storage, sessionKey);
@@ -137,14 +93,10 @@ export function useBaqk<
 
 	return {
 		goBack,
-		hasTrail,
 		previousEntry,
-		trail,
 		saveState,
-		restoreState,
 		restoredState,
 		wasRestored,
-		navigateWithTrail,
-		clearAll,
+		clear,
 	};
 }

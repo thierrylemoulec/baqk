@@ -19,16 +19,18 @@ vi.mock("react-router", async () => {
 	};
 });
 
-const { useBaqk } = await import("baqk");
+const { useBaqk, useTrailClick } = await import("baqk");
 const { BaqkAdapter } = await import("baqk/adapters/react-router");
 const { MemoryRouter, Route, Routes, useLocation } = await import(
 	"react-router"
 );
 
 let baqkRef: ReturnType<typeof useBaqk>;
+let trailClickRef: ReturnType<typeof useTrailClick>;
 
 function BaqkCapture() {
 	baqkRef = useBaqk({ fallbackPath: "/products" });
+	trailClickRef = useTrailClick("Products");
 	return null;
 }
 
@@ -59,35 +61,55 @@ describe("React Router adapter", () => {
 		window.history.pushState({}, "", "/");
 	});
 
-	it("navigateWithTrail changes route and records trail", () => {
+	it("useTrailClick records trail entry, goBack pops it", () => {
 		window.history.pushState({}, "", "/products");
 		render(<TestApp initialPath="/products" />);
 
 		expect(screen.getByTestId("path").textContent).toBe("/products");
 
+		// Push trail entry via useTrailClick
 		act(() => {
-			baqkRef.navigateWithTrail("/products/42", { label: "Products" });
+			trailClickRef({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
 		});
 
-		expect(screen.getByTestId("path").textContent).toBe("/products/42");
-		expect(baqkRef.hasTrail).toBe(true);
-		expect(baqkRef.previousEntry?.label).toBe("Products");
+		// Trail was recorded — goBack should pop it and navigate back
+		act(() => {
+			baqkRef.goBack();
+		});
+
+		expect(navigateSpy).toHaveBeenLastCalledWith("/products", {
+			replace: true,
+		});
 	});
 
 	it("goBack navigates to previous route", () => {
 		window.history.pushState({}, "", "/products");
 		render(<TestApp initialPath="/products" />);
 
+		// Push trail entry via useTrailClick
 		act(() => {
-			baqkRef.navigateWithTrail("/products/42");
+			trailClickRef({
+				button: 0,
+				defaultPrevented: false,
+				metaKey: false,
+				ctrlKey: false,
+				shiftKey: false,
+				altKey: false,
+			} as React.MouseEvent);
 		});
 
+		// The trail entry is now recorded. Go back should pop it.
 		act(() => {
 			baqkRef.goBack();
 		});
 
-		expect(screen.getByTestId("path").textContent).toBe("/products");
-		expect(baqkRef.hasTrail).toBe(false);
 		expect(navigateSpy).toHaveBeenLastCalledWith("/products", {
 			replace: true,
 		});
@@ -97,7 +119,7 @@ describe("React Router adapter", () => {
 		window.history.pushState({}, "", "/products/42");
 		render(<TestApp initialPath="/products/42" />);
 
-		expect(baqkRef.hasTrail).toBe(false);
+		expect(baqkRef.previousEntry).toBeNull();
 
 		act(() => {
 			baqkRef.goBack();
