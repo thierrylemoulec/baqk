@@ -9,11 +9,7 @@ import {
 	restoreState as restoreStateFromStorage,
 	saveState as saveStateToStorage,
 } from "../core/state-manager.js";
-import {
-	clearTrail,
-	peekTrail,
-	popTrail,
-} from "../core/trail-manager.js";
+import { clearTrail, peekTrail, popTrail } from "../core/trail-manager.js";
 import type { BaqkOptions, BaqkResult } from "../core/types.js";
 
 export function useBaqk<

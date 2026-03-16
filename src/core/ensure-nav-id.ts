@@ -1,5 +1,5 @@
-import { HISTORY_STATE_KEY } from "./constants.js";
 import { generateNavId } from "../utils/id.js";
+import { HISTORY_STATE_KEY } from "./constants.js";
 
 export function ensureNavId(router: {
 	getHistoryState(): Record<string, unknown> | null;

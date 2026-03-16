@@ -1,10 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
-import React, { type ReactNode } from "react";
+import type React from "react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BaqkContext } from "../../context/baqk-context.js";
+import { getTrail } from "../../core/trail-manager.js";
 import type { BaqkContextValue, RouterAdapter } from "../../core/types.js";
 import { createMemoryStorage } from "../../storage/memory-storage.js";
-import { getTrail } from "../../core/trail-manager.js";
 import { useBaqk } from "../baqk.js";
 import { useTrailClick } from "../trail-click.js";
 
@@ -198,9 +199,7 @@ describe("useTrailClick", () => {
 		const { result } = renderHook(() => useTrailClick(), { wrapper });
 
 		act(() => {
-			result.current(
-				makeAnchorClick("/other", { defaultPrevented: true }),
-			);
+			result.current(makeAnchorClick("/other", { defaultPrevented: true }));
 		});
 
 		expect(getTrail(storage, sessionKey)).toHaveLength(0);
@@ -220,9 +219,7 @@ describe("useTrailClick", () => {
 		const { result } = renderHook(() => useTrailClick(), { wrapper });
 
 		act(() => {
-			result.current(
-				makeAnchorClick("/products/42", {}, { target: "_blank" }),
-			);
+			result.current(makeAnchorClick("/products/42", {}, { target: "_blank" }));
 		});
 
 		expect(getTrail(storage, sessionKey)).toHaveLength(0);
@@ -356,9 +353,7 @@ describe("useTrailClick", () => {
 			const { result } = renderHook(() => useTrailClick(), { wrapper });
 
 			act(() => {
-				result.current(
-					makeDelegationClick("https://example.com/products/42"),
-				);
+				result.current(makeDelegationClick("https://example.com/products/42"));
 			});
 
 			expect(getTrail(storage, sessionKey)).toHaveLength(0);

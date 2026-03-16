@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import React, { useState, type ReactNode } from "react";
+import type React from "react";
+import { type ReactNode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BaqkContext } from "../../context/baqk-context.js";
 import type { BaqkContextValue, RouterAdapter } from "../../core/types.js";
@@ -492,8 +493,8 @@ describe("useBaqk", () => {
 			router.currentPath = "/a";
 
 			// Read the trail to grab the stale /a entry's navId
-			const trail = storage.getItem("bcb:test:trail");
-			const entries = JSON.parse(trail!);
+			const trail = storage.getItem("bcb:test:trail") ?? "[]";
+			const entries = JSON.parse(trail);
 			const staleEntry = entries[entries.length - 1]; // top of stack = /a entry
 			const staleNavId = staleEntry.navId;
 

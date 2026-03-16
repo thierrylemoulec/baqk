@@ -51,9 +51,7 @@ function shouldTrackAnchorClick(anchor: HTMLAnchorElement): boolean {
 	return true;
 }
 
-export function useTrailClick(
-	label?: string,
-): (e?: React.MouseEvent) => void {
+export function useTrailClick(label?: string): (e?: React.MouseEvent) => void {
 	const { router, storage, sessionKey } = useBaqkContext();
 
 	const navIdRef = useRef<string | null>(null);

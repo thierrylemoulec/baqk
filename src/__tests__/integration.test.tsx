@@ -28,9 +28,7 @@ function createMockRouter(initialPath: string): RouterAdapter & {
 	return mock;
 }
 
-function simulateClick(
-	trailClick: (e?: React.MouseEvent) => void,
-) {
+function simulateClick(trailClick: (e?: React.MouseEvent) => void) {
 	const anchor = document.createElement("a");
 	anchor.setAttribute("href", "/next");
 	trailClick({
