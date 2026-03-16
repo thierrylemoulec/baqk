@@ -33,6 +33,21 @@ function createWrapper(ctx: BaqkContextValue) {
 	};
 }
 
+function makeClickEvent(): React.MouseEvent {
+	const anchor = document.createElement("a");
+	anchor.setAttribute("href", "/next");
+	return {
+		button: 0,
+		defaultPrevented: false,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+		currentTarget: anchor,
+		target: anchor,
+	} as unknown as React.MouseEvent;
+}
+
 describe("useBaqk", () => {
 	let storage: ReturnType<typeof createMemoryStorage>;
 	let router: ReturnType<typeof createMockRouter>;
@@ -61,14 +76,7 @@ describe("useBaqk", () => {
 
 			// Simulate a left-click that pushes a trail entry
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				// Simulate navigation (the link would do this)
 				router.currentPath = "/products/42";
 				router.historyState = {};
@@ -130,14 +138,7 @@ describe("useBaqk", () => {
 				result.current.baqk.saveState({
 					filters: { category: "shoes" },
 				});
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/products/42";
 				router.historyState = {};
 			});
@@ -166,14 +167,7 @@ describe("useBaqk", () => {
 				{ wrapper },
 			);
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/next";
 				router.historyState = {};
 			});
@@ -194,14 +188,7 @@ describe("useBaqk", () => {
 			);
 			act(() => {
 				result.current.baqk.saveState({ page: 3 });
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/detail";
 				router.historyState = {};
 			});
@@ -235,14 +222,7 @@ describe("useBaqk", () => {
 			);
 			act(() => {
 				result.current.baqk.saveState({ x: 1 });
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/next";
 				router.historyState = {};
 			});
@@ -278,14 +258,7 @@ describe("useBaqk", () => {
 			act(() => {
 				result.current.baqk.saveState({ v: 1 });
 				result.current.baqk.saveState({ v: 2 });
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/next";
 				router.historyState = {};
 			});
@@ -329,14 +302,7 @@ describe("useBaqk", () => {
 				{ wrapper },
 			);
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/detail";
 				router.historyState = {};
 			});
@@ -361,14 +327,7 @@ describe("useBaqk", () => {
 				{ wrapper },
 			);
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/detail";
 				router.historyState = {};
 			});
@@ -380,6 +339,200 @@ describe("useBaqk", () => {
 
 			renderHook(() => useBaqk({ autoSaveScroll: false }), { wrapper });
 			expect(window.scrollTo).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("stale entry skipping", () => {
+		it("top entry matches current URL → skips it, uses next entry", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick("A"),
+				}),
+				{ wrapper },
+			);
+
+			// Push trail entry for A (/products → /a)
+			act(() => {
+				result.current.trailClick(makeClickEvent());
+				router.currentPath = "/a";
+				router.historyState = {};
+			});
+
+			const { result: pageA } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick("B"),
+				}),
+				{ wrapper },
+			);
+
+			// Push trail entry for B (/a → /b)
+			act(() => {
+				pageA.current.trailClick(makeClickEvent());
+				router.currentPath = "/b";
+				router.historyState = {};
+			});
+
+			// Something navigates back to /a without going through goBack,
+			// leaving a stale entry for /b pointing to /a
+			router.currentPath = "/a";
+
+			// Trail is now: [/products, /a]. Current path is /a.
+			// goBack should skip /a (stale) and navigate to /products.
+			const { result: current } = renderHook(() => useBaqk(), { wrapper });
+			act(() => current.current.goBack());
+
+			expect(router.currentPath).toBe("/products");
+		});
+
+		it("multiple stale entries → skips all, uses first non-matching", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick(),
+				}),
+				{ wrapper },
+			);
+
+			// Push trail entry for /products
+			act(() => {
+				result.current.trailClick(makeClickEvent());
+				router.currentPath = "/x";
+				router.historyState = {};
+			});
+
+			// Push two more entries that all point to /x
+			for (let i = 0; i < 2; i++) {
+				const { result: page } = renderHook(
+					() => ({
+						baqk: useBaqk(),
+						trailClick: useTrailClick(),
+					}),
+					{ wrapper },
+				);
+				act(() => {
+					page.current.trailClick(makeClickEvent());
+					router.currentPath = "/x";
+					router.historyState = {};
+				});
+			}
+
+			// Trail: [/products, /x, /x]. Current path: /x.
+			// goBack should skip both /x entries and navigate to /products.
+			const { result: current } = renderHook(() => useBaqk(), { wrapper });
+			act(() => current.current.goBack());
+
+			expect(router.currentPath).toBe("/products");
+		});
+
+		it("all entries match current URL → falls back to fallbackPath", () => {
+			// Push entries that all point to /products (current path)
+			for (let i = 0; i < 2; i++) {
+				const { result: page } = renderHook(
+					() => ({
+						baqk: useBaqk(),
+						trailClick: useTrailClick(),
+					}),
+					{ wrapper },
+				);
+				act(() => {
+					page.current.trailClick(makeClickEvent());
+					router.currentPath = "/somewhere";
+					router.historyState = {};
+				});
+				// Navigate back to /products so the next entry also points here
+				router.currentPath = "/products";
+			}
+
+			// Trail: [/products, /products]. Current path: /products.
+			// All entries are stale → should exhaust trail and use fallbackPath.
+			const { result: current } = renderHook(
+				() => useBaqk({ fallbackPath: "/home" }),
+				{ wrapper },
+			);
+			act(() => current.current.goBack());
+
+			expect(router.currentPath).toBe("/home");
+		});
+
+		it("skipped stale entries preserve their state and scroll data", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick("Products"),
+				}),
+				{ wrapper },
+			);
+
+			// On /products: save state, push trail, navigate to /a
+			act(() => {
+				result.current.baqk.saveState({ filters: "shoes" });
+				result.current.trailClick(makeClickEvent());
+				router.currentPath = "/a";
+				router.historyState = {};
+			});
+
+			const { result: pageA } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick("A"),
+				}),
+				{ wrapper },
+			);
+
+			// On /a: push trail, navigate to /b
+			act(() => {
+				pageA.current.trailClick(makeClickEvent());
+				router.currentPath = "/b";
+				router.historyState = {};
+			});
+
+			// Simulate browser back to /a (without goBack)
+			router.currentPath = "/a";
+
+			// Read the trail to grab the stale /a entry's navId
+			const trail = storage.getItem("bcb:test:trail");
+			const entries = JSON.parse(trail!);
+			const staleEntry = entries[entries.length - 1]; // top of stack = /a entry
+			const staleNavId = staleEntry.navId;
+
+			// Manually set state and scroll data for the stale navId
+			storage.setItem(`bcb:test:state:${staleNavId}`, '{"foo":"bar"}');
+			storage.setItem(`bcb:test:scroll:${staleNavId}`, "500");
+
+			// goBack should skip /a (stale), navigate to /products
+			const { result: current } = renderHook(() => useBaqk(), { wrapper });
+			act(() => current.current.goBack());
+
+			expect(router.currentPath).toBe("/products");
+			// State and scroll data for the stale entry must still exist
+			expect(storage.getItem(`bcb:test:state:${staleNavId}`)).toBe(
+				'{"foo":"bar"}',
+			);
+			expect(storage.getItem(`bcb:test:scroll:${staleNavId}`)).toBe("500");
+		});
+
+		it("no stale entries (normal case) → behavior unchanged", () => {
+			const { result } = renderHook(
+				() => ({
+					baqk: useBaqk(),
+					trailClick: useTrailClick("Products"),
+				}),
+				{ wrapper },
+			);
+
+			act(() => {
+				result.current.trailClick(makeClickEvent());
+				router.currentPath = "/detail";
+				router.historyState = {};
+			});
+
+			// Current path /detail differs from trail entry /products → no skipping
+			const { result: detail } = renderHook(() => useBaqk(), { wrapper });
+			act(() => detail.current.goBack());
+
+			expect(router.currentPath).toBe("/products");
 		});
 	});
 
@@ -398,14 +551,7 @@ describe("useBaqk", () => {
 				{ wrapper: wrapperA },
 			);
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/secret";
 				router.historyState = {};
 			});
@@ -430,14 +576,7 @@ describe("useBaqk", () => {
 				{ wrapper },
 			);
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/a";
 				router.historyState = {};
 			});
@@ -461,14 +600,7 @@ describe("useBaqk", () => {
 			);
 			act(() => {
 				result.current.baqk.saveState({ x: 1 });
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/next";
 				router.historyState = {};
 			});
@@ -500,14 +632,7 @@ describe("useBaqk", () => {
 				{ wrapper },
 			);
 			act(() => {
-				result.current.trailClick({
-					button: 0,
-					defaultPrevented: false,
-					metaKey: false,
-					ctrlKey: false,
-					shiftKey: false,
-					altKey: false,
-				} as React.MouseEvent);
+				result.current.trailClick(makeClickEvent());
 				router.currentPath = "/detail";
 				router.historyState = {};
 			});

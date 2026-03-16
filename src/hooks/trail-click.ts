@@ -5,22 +5,27 @@ import { saveScroll } from "../core/scroll-manager.js";
 import { pushTrail } from "../core/trail-manager.js";
 import type { TrailEntry } from "../core/types.js";
 
-function shouldTrackAnchorClick(e: React.MouseEvent): boolean {
-	const { currentTarget } = e;
-	if (!(currentTarget instanceof HTMLAnchorElement)) {
-		return true;
+function findAnchor(e: React.MouseEvent): HTMLAnchorElement | null {
+	let node = e.target as Element | null;
+	const boundary = e.currentTarget as Element;
+	while (node && node !== boundary) {
+		if (node instanceof HTMLAnchorElement) return node;
+		node = node.parentElement;
 	}
+	return boundary instanceof HTMLAnchorElement ? boundary : null;
+}
 
-	const target = currentTarget.getAttribute("target");
+function shouldTrackAnchorClick(anchor: HTMLAnchorElement): boolean {
+	const target = anchor.getAttribute("target");
 	if (target && target.toLowerCase() !== "_self") {
 		return false;
 	}
 
-	if (currentTarget.hasAttribute("download")) {
+	if (anchor.hasAttribute("download")) {
 		return false;
 	}
 
-	const href = currentTarget.getAttribute("href");
+	const href = anchor.getAttribute("href");
 	if (!href) {
 		return false;
 	}
@@ -59,10 +64,19 @@ export function useTrailClick(
 	return useCallback(
 		(e?: React.MouseEvent) => {
 			if (!e) return;
-			if (e.defaultPrevented) return;
 			if (e.button !== 0) return;
 			if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-			if (!shouldTrackAnchorClick(e)) return;
+
+			const anchor = findAnchor(e);
+			if (!anchor || !shouldTrackAnchorClick(anchor)) return;
+
+			// In direct mode (handler on an <a>), respect defaultPrevented — the
+			// handler itself decided to cancel.  In delegation mode, routers call
+			// preventDefault() as normal operation and findAnchor guarantees the
+			// target is inside the anchor, so we cannot distinguish router-managed
+			// prevention from genuine cancellation — we allow the push.
+			if (e.defaultPrevented && e.currentTarget instanceof HTMLAnchorElement)
+				return;
 
 			const navId = navIdRef.current;
 			if (!navId) return;

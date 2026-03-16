@@ -31,6 +31,8 @@ function createMockRouter(initialPath: string): RouterAdapter & {
 function simulateClick(
 	trailClick: (e?: React.MouseEvent) => void,
 ) {
+	const anchor = document.createElement("a");
+	anchor.setAttribute("href", "/next");
 	trailClick({
 		button: 0,
 		defaultPrevented: false,
@@ -38,7 +40,9 @@ function simulateClick(
 		ctrlKey: false,
 		shiftKey: false,
 		altKey: false,
-	} as React.MouseEvent);
+		currentTarget: anchor,
+		target: anchor,
+	} as unknown as React.MouseEvent);
 }
 
 describe("Navigation flows", () => {

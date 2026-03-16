@@ -20,6 +20,21 @@ vi.mock("next/navigation", () => ({
 const { BaqkAdapter } = await import("baqk/adapters/next");
 const { useBaqk, useTrailClick } = await import("baqk");
 
+function makeClickEvent(href = "/next"): React.MouseEvent {
+	const anchor = document.createElement("a");
+	anchor.setAttribute("href", href);
+	return {
+		button: 0,
+		defaultPrevented: false,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+		currentTarget: anchor,
+		target: anchor,
+	} as unknown as React.MouseEvent;
+}
+
 function createWrapper() {
 	return function Wrapper({ children }: { children: ReactNode }) {
 		return <BaqkAdapter sessionKey="test">{children}</BaqkAdapter>;
@@ -56,14 +71,7 @@ describe("Next.js adapter", () => {
 		);
 
 		act(() => {
-			result.current.trailClick({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			result.current.trailClick(makeClickEvent());
 		});
 
 		// Render a new hook instance to read updated trail from storage
@@ -83,15 +91,11 @@ describe("Next.js adapter", () => {
 		);
 
 		act(() => {
-			result.current.trailClick({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			result.current.trailClick(makeClickEvent());
 		});
+
+		// Simulate navigation to a detail page
+		window.history.pushState({}, "", "/products/42");
 
 		const { result: detail } = renderHook(() => useBaqk(), { wrapper });
 		act(() => {
@@ -116,14 +120,7 @@ describe("Next.js adapter", () => {
 		);
 
 		act(() => {
-			result.current.trailClick({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			result.current.trailClick(makeClickEvent());
 		});
 
 		const { result: target } = renderHook(() => useBaqk(), { wrapper });

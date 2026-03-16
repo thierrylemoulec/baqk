@@ -3,6 +3,21 @@ import { BaqkAdapter, useBaqk, useTrailClick } from "baqk";
 import React, { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+function makeClickEvent(href = "/next"): React.MouseEvent {
+	const anchor = document.createElement("a");
+	anchor.setAttribute("href", href);
+	return {
+		button: 0,
+		defaultPrevented: false,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+		currentTarget: anchor,
+		target: anchor,
+	} as unknown as React.MouseEvent;
+}
+
 describe("Generic adapter", () => {
 	let currentPath: string;
 	const navigateFn = vi.fn((path: string, _options?: { replace?: boolean }) => {
@@ -48,14 +63,7 @@ describe("Generic adapter", () => {
 		);
 
 		act(() => {
-			result.current.trailClick({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			result.current.trailClick(makeClickEvent());
 			currentPath = "/products/42";
 		});
 
@@ -77,14 +85,7 @@ describe("Generic adapter", () => {
 		);
 
 		act(() => {
-			result.current.trailClick({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			result.current.trailClick(makeClickEvent());
 			currentPath = "/products/42";
 		});
 

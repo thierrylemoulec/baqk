@@ -29,6 +29,7 @@
     "llms.txt"
   ],
   "scripts": {
+    "dev": "tsup --watch",
     "build": "tsup",
     "postbuild": "node scripts/ensure-next-use-client.mjs",
     "test": "vitest run",

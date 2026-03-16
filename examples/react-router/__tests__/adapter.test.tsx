@@ -25,6 +25,21 @@ const { MemoryRouter, Route, Routes, useLocation } = await import(
 	"react-router"
 );
 
+function makeClickEvent(href = "/next"): React.MouseEvent {
+	const anchor = document.createElement("a");
+	anchor.setAttribute("href", href);
+	return {
+		button: 0,
+		defaultPrevented: false,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+		currentTarget: anchor,
+		target: anchor,
+	} as unknown as React.MouseEvent;
+}
+
 let baqkRef: ReturnType<typeof useBaqk>;
 let trailClickRef: ReturnType<typeof useTrailClick>;
 
@@ -69,15 +84,11 @@ describe("React Router adapter", () => {
 
 		// Push trail entry via useTrailClick
 		act(() => {
-			trailClickRef({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			trailClickRef(makeClickEvent());
 		});
+
+		// Simulate navigation to a detail page
+		window.history.pushState({}, "", "/products/42");
 
 		// Trail was recorded — goBack should pop it and navigate back
 		act(() => {
@@ -95,15 +106,11 @@ describe("React Router adapter", () => {
 
 		// Push trail entry via useTrailClick
 		act(() => {
-			trailClickRef({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			trailClickRef(makeClickEvent());
 		});
+
+		// Simulate navigation to a detail page
+		window.history.pushState({}, "", "/products/42");
 
 		// The trail entry is now recorded. Go back should pop it.
 		act(() => {

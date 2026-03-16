@@ -67,11 +67,14 @@ export function useBaqk<
 
 	const goBack = useCallback(
 		(overrideFallback?: string) => {
-			const entry = popTrail(storage, sessionKey);
+			const currentPath = router.getCurrentPath();
+			let entry = popTrail(storage, sessionKey);
+			// Skip stale entries that point to the current URL
+			while (entry && entry.path === currentPath) {
+				entry = popTrail(storage, sessionKey);
+			}
 			if (entry) {
 				router.navigate(entry.path, { replace: true });
-				// Stamp the new history entry with the original navId
-				// so the target page's auto-restore finds its saved state
 				router.replaceHistoryState({
 					[HISTORY_STATE_KEY]: entry.navId,
 				});

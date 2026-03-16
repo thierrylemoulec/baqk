@@ -32,6 +32,21 @@ const {
 const { useBaqk, useTrailClick } = await import("baqk");
 const { BaqkAdapter } = await import("baqk/adapters/tanstack");
 
+function makeClickEvent(href = "/next"): React.MouseEvent {
+	const anchor = document.createElement("a");
+	anchor.setAttribute("href", href);
+	return {
+		button: 0,
+		defaultPrevented: false,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+		currentTarget: anchor,
+		target: anchor,
+	} as unknown as React.MouseEvent;
+}
+
 let baqkRef: ReturnType<typeof useBaqk>;
 let trailClickRef: ReturnType<typeof useTrailClick>;
 
@@ -101,14 +116,7 @@ describe("TanStack Router adapter", () => {
 		});
 
 		act(() => {
-			trailClickRef({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			trailClickRef(makeClickEvent());
 		});
 
 		// Navigate to trigger a re-render so previousEntry is recomputed
@@ -133,15 +141,11 @@ describe("TanStack Router adapter", () => {
 		});
 
 		act(() => {
-			trailClickRef({
-				button: 0,
-				defaultPrevented: false,
-				metaKey: false,
-				ctrlKey: false,
-				shiftKey: false,
-				altKey: false,
-			} as React.MouseEvent);
+			trailClickRef(makeClickEvent());
 		});
+
+		// Simulate navigation to a detail page
+		window.history.pushState({}, "", "/products/42");
 
 		await act(async () => {
 			baqkRef.goBack();

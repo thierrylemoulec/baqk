@@ -1,0 +1,62 @@
+name: CI & Publish
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm test
+
+  publish:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Check if version changed
+        id: version-check
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          REMOTE=$(npm view @thrylm/baqk version 2>/dev/null || echo "0.0.0")
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing $LOCAL (npm has $REMOTE)"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version $LOCAL already published, skipping"
+          fi
+      - name: Publish
+        if: steps.version-check.outputs.changed == 'true'
+        run: pnpm publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

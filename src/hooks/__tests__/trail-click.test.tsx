@@ -74,6 +74,22 @@ function makeAnchorClick(
 	});
 }
 
+function makeDelegationClick(
+	anchorHref: string,
+	overrides: Partial<React.MouseEvent> = {},
+	anchorOptions: { target?: string; download?: string } = {},
+): React.MouseEvent {
+	const wrapperDiv = document.createElement("div");
+	const anchor = makeAnchor(anchorHref, anchorOptions);
+	wrapperDiv.appendChild(anchor);
+	return makeMouseEvent({
+		target: anchor,
+		currentTarget: wrapperDiv,
+		defaultPrevented: true,
+		...overrides,
+	});
+}
+
 describe("useTrailClick", () => {
 	let storage: ReturnType<typeof createMemoryStorage>;
 	let router: ReturnType<typeof createMockRouter>;
@@ -102,7 +118,7 @@ describe("useTrailClick", () => {
 		});
 
 		act(() => {
-			result.current(makeMouseEvent());
+			result.current(makeAnchorClick("/products/42"));
 		});
 
 		const trail = getTrail(storage, sessionKey);
@@ -117,7 +133,7 @@ describe("useTrailClick", () => {
 		const { result } = renderHook(() => useTrailClick(), { wrapper });
 
 		act(() => {
-			result.current(makeMouseEvent());
+			result.current(makeAnchorClick("/products/42"));
 		});
 
 		// Scroll was saved — verify by checking storage directly
@@ -178,11 +194,13 @@ describe("useTrailClick", () => {
 		expect(getTrail(storage, sessionKey)).toHaveLength(0);
 	});
 
-	it("skips when defaultPrevented is true", () => {
+	it("skips when defaultPrevented is true in direct mode (anchor currentTarget)", () => {
 		const { result } = renderHook(() => useTrailClick(), { wrapper });
 
 		act(() => {
-			result.current(makeMouseEvent({ defaultPrevented: true }));
+			result.current(
+				makeAnchorClick("/other", { defaultPrevented: true }),
+			);
 		});
 
 		expect(getTrail(storage, sessionKey)).toHaveLength(0);
@@ -247,7 +265,7 @@ describe("useTrailClick", () => {
 		router.currentPath = "/changed";
 
 		act(() => {
-			result.current(makeMouseEvent());
+			result.current(makeAnchorClick("/products/42"));
 		});
 
 		const trail = getTrail(storage, sessionKey);
@@ -259,7 +277,7 @@ describe("useTrailClick", () => {
 		const { result } = renderHook(() => useTrailClick("Label"), { wrapper });
 
 		act(() => {
-			result.current(makeMouseEvent());
+			result.current(makeAnchorClick("/products/42"));
 		});
 
 		const trail = getTrail(storage, sessionKey);
@@ -277,7 +295,7 @@ describe("useTrailClick", () => {
 		);
 
 		act(() => {
-			result.current.trailClick(makeMouseEvent());
+			result.current.trailClick(makeAnchorClick("/products/42"));
 		});
 
 		const trail = getTrail(storage, sessionKey);
@@ -286,6 +304,107 @@ describe("useTrailClick", () => {
 		// (ensureNavId is idempotent — stamps once, reads after)
 		expect(trail[0].navId).toEqual(expect.any(String));
 		expect(trail[0].navId.length).toBeGreaterThan(0);
+	});
+
+	describe("delegation mode (handler on wrapper div)", () => {
+		it("pushes trail when child <a> has defaultPrevented (router link)", () => {
+			const { result } = renderHook(() => useTrailClick("Products"), {
+				wrapper,
+			});
+
+			act(() => {
+				result.current(makeDelegationClick("/products/42"));
+			});
+
+			const trail = getTrail(storage, sessionKey);
+			expect(trail).toHaveLength(1);
+			expect(trail[0].label).toBe("Products");
+		});
+
+		it("skips when click target is not a link (e.g. button)", () => {
+			const { result } = renderHook(() => useTrailClick(), { wrapper });
+
+			const wrapperDiv = document.createElement("div");
+			const button = document.createElement("button");
+			wrapperDiv.appendChild(button);
+
+			act(() => {
+				result.current(
+					makeMouseEvent({
+						target: button,
+						currentTarget: wrapperDiv,
+					}),
+				);
+			});
+
+			expect(getTrail(storage, sessionKey)).toHaveLength(0);
+		});
+
+		it("skips target=_blank links in delegation mode", () => {
+			const { result } = renderHook(() => useTrailClick(), { wrapper });
+
+			act(() => {
+				result.current(
+					makeDelegationClick("/products/42", {}, { target: "_blank" }),
+				);
+			});
+
+			expect(getTrail(storage, sessionKey)).toHaveLength(0);
+		});
+
+		it("skips external links in delegation mode", () => {
+			const { result } = renderHook(() => useTrailClick(), { wrapper });
+
+			act(() => {
+				result.current(
+					makeDelegationClick("https://example.com/products/42"),
+				);
+			});
+
+			expect(getTrail(storage, sessionKey)).toHaveLength(0);
+		});
+
+		it("skips download links in delegation mode", () => {
+			const { result } = renderHook(() => useTrailClick(), { wrapper });
+
+			act(() => {
+				result.current(
+					makeDelegationClick("/report.csv", {}, { download: "" }),
+				);
+			});
+
+			expect(getTrail(storage, sessionKey)).toHaveLength(0);
+		});
+
+		it("skips when defaultPrevented and click target is not inside any anchor", () => {
+			const { result } = renderHook(() => useTrailClick(), { wrapper });
+
+			const wrapperDiv = document.createElement("div");
+			const button = document.createElement("button");
+			wrapperDiv.appendChild(button);
+
+			act(() => {
+				result.current(
+					makeMouseEvent({
+						target: button,
+						currentTarget: wrapperDiv,
+						defaultPrevented: true,
+					}),
+				);
+			});
+
+			expect(getTrail(storage, sessionKey)).toHaveLength(0);
+		});
+
+		it("skips hash-only links in delegation mode", () => {
+			const { result } = renderHook(() => useTrailClick(), { wrapper });
+
+			act(() => {
+				result.current(makeDelegationClick("#details"));
+			});
+
+			expect(getTrail(storage, sessionKey)).toHaveLength(0);
+		});
 	});
 
 	it("trail entry is usable by goBack", () => {
@@ -302,7 +421,7 @@ describe("useTrailClick", () => {
 		);
 
 		act(() => {
-			clickResult.current(makeMouseEvent());
+			clickResult.current(makeAnchorClick("/products/42"));
 		});
 
 		// Simulate navigation to detail page
