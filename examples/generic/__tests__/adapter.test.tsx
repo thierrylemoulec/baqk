@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { BaqkAdapter, useBaqk, useTrailClick } from "baqk";
+import { BaqkAdapter, useBaqk, useTrailClick } from "@thrylm/baqk";
 import React, { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

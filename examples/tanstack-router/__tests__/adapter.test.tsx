@@ -29,8 +29,8 @@ const {
 	createRoute,
 	createRouter,
 } = await import("@tanstack/react-router");
-const { useBaqk, useTrailClick } = await import("baqk");
-const { BaqkAdapter } = await import("baqk/adapters/tanstack");
+const { useBaqk, useTrailClick } = await import("@thrylm/baqk");
+const { BaqkAdapter } = await import("@thrylm/baqk/adapters/tanstack");
 
 function makeClickEvent(href = "/next"): React.MouseEvent {
 	const anchor = document.createElement("a");

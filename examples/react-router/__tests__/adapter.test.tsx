@@ -19,8 +19,8 @@ vi.mock("react-router", async () => {
 	};
 });
 
-const { useBaqk, useTrailClick } = await import("baqk");
-const { BaqkAdapter } = await import("baqk/adapters/react-router");
+const { useBaqk, useTrailClick } = await import("@thrylm/baqk");
+const { BaqkAdapter } = await import("@thrylm/baqk/adapters/react-router");
 const { MemoryRouter, Route, Routes, useLocation } = await import(
 	"react-router"
 );

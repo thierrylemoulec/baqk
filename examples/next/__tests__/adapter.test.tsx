@@ -17,8 +17,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Import after mock is set up (vitest hoists vi.mock automatically)
-const { BaqkAdapter } = await import("baqk/adapters/next");
-const { useBaqk, useTrailClick } = await import("baqk");
+const { BaqkAdapter } = await import("@thrylm/baqk/adapters/next");
+const { useBaqk, useTrailClick } = await import("@thrylm/baqk");
 
 function makeClickEvent(href = "/next"): React.MouseEvent {
 	const anchor = document.createElement("a");
