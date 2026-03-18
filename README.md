@@ -135,6 +135,10 @@ All router-specific adapters accept optional `sessionKey` and `storage` props. T
 
 Returns an `onClick` handler that pushes a trail entry without navigating. Attach it to same-tab internal `<Link>`/anchor navigations — the link handles navigation natively, no `preventDefault` needed.
 
+#### Direct mode (recommended)
+
+Attach the handler directly to each `<Link>`. This follows React's best practice of keeping event handling explicit and colocated with the element it applies to — easier to trace, easier to debug.
+
 ```tsx
 import { useTrailClick } from "@thrylm/baqk";
 
@@ -146,6 +150,26 @@ function ProductList() {
       {p.name}
     </Link>
   ));
+}
+```
+
+#### Delegated mode
+
+You can also attach the handler to a container element. It uses event delegation to detect anchor clicks via bubbling. This is convenient when you have many links in a list, but it's less explicit and harder to follow in larger components.
+
+```tsx
+function ProductList() {
+  const trailClick = useTrailClick("Products");
+
+  return (
+    <div onClick={trailClick}>
+      {products.map((p) => (
+        <Link key={p.id} to={`/products/${p.id}`}>
+          {p.name}
+        </Link>
+      ))}
+    </div>
+  );
 }
 ```
 
